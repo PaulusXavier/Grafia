@@ -50,7 +50,7 @@
      Reaproveitado na tela de entrada (grande) e, via CSS, em tamanho menor
      onde fizer sentido no futuro. -->
 <template id="mascot-template">
-  <svg class="mascot" viewBox="0 0 156 170" role="img" aria-label="Grafi, o caderno copiloto do Paulus" data-estado="repouso">
+  <svg class="mascot" viewBox="0 0 156 170" role="img" aria-label="Grafia, o caderno copiloto do Paulus" data-estado="repouso">
     <g class="m-corpo">
       <path d="M28 90 Q6 100 10 122" fill="none" stroke="var(--sage-dark)" stroke-width="7" stroke-linecap="round"/>
       <circle cx="10" cy="122" r="7" fill="var(--sage-dark)"/>
@@ -94,6 +94,10 @@
           <path d="M55 46 L67 43"/>
           <path d="M93 46 L81 43"/>
         </g>
+        <g class="m-duvida" stroke="var(--ink)" stroke-width="3" stroke-linecap="round" fill="none">
+          <path d="M55 43 Q61 38 68 42"/>
+          <path d="M81 46 L93 46"/>
+        </g>
         <g class="m-olhar">
           <g class="m-olhos">
             <g class="m-olho"><circle cx="62" cy="57" r="5.5" fill="var(--ink)"/><circle cx="64" cy="55" r="1.6" fill="#fff"/></g>
@@ -105,6 +109,7 @@
           <path d="M80 58 Q86 63 92 58"/>
         </g>
         <path class="m-boca m-boca-sorriso" d="M62 72 Q74 82 86 72" fill="none" stroke="var(--ink)" stroke-width="4" stroke-linecap="round"/>
+        <path class="m-boca m-boca-ondas" d="M64 76 Q69 71 74 76 T84 76" fill="none" stroke="var(--ink)" stroke-width="4" stroke-linecap="round"/>
         <ellipse class="m-boca m-boca-o" cx="74" cy="75" rx="4.5" ry="5" fill="var(--ink)"/>
         <path class="m-boca m-boca-reta" d="M66 76 L82 76" fill="none" stroke="var(--ink)" stroke-width="4" stroke-linecap="round"/>
         <circle cx="52" cy="68" r="5" fill="var(--ochre)" opacity="0.35"/>
