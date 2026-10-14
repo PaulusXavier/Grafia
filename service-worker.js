@@ -10,6 +10,7 @@ const SHELL_FILES = [
   './firebase-config.js',
   './paulus.v1.js',
   './paulus-grafia.js',
+  './mascote.js',
   './conhecimento.json',
   './manifest.json',
   './icon-192.png',
