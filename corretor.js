@@ -72,20 +72,35 @@
       }
     }
 
+    function adicionarLinhaDic(l) {
+      if (!l || l[0] === "#") return;
+      const sp = l.indexOf(" ");
+      const entrada = sp === -1 ? l : l.slice(0, sp);
+      const barra = entrada.indexOf("/");
+      const palavra = barra === -1 ? entrada : entrada.slice(0, barra);
+      if (!palavra) return;
+      const flags = barra === -1 ? "" : lerFlags(entrada.slice(barra + 1));
+      const antes = palavras.get(palavra);
+      if (antes === undefined) palavras.set(palavra, flags);
+      else if (flags) palavras.set(palavra, Array.isArray(flags) ? [...antes, ...flags] : antes + flags);
+    }
+
     function carregarDic(texto) {
       const linhas = texto.split(/\r?\n/);
-      for (let i = 1; i < linhas.length; i++) { // linha 0 = quantidade
-        const l = linhas[i];
-        if (!l || l[0] === "#") continue;
-        const sp = l.indexOf(" ");
-        const entrada = sp === -1 ? l : l.slice(0, sp);
-        const barra = entrada.indexOf("/");
-        const palavra = barra === -1 ? entrada : entrada.slice(0, barra);
-        if (!palavra) continue;
-        const flags = barra === -1 ? "" : lerFlags(entrada.slice(barra + 1));
-        const antes = palavras.get(palavra);
-        if (antes === undefined) palavras.set(palavra, flags);
-        else if (flags) palavras.set(palavra, Array.isArray(flags) ? [...antes, ...flags] : antes + flags);
+      for (let i = 1; i < linhas.length; i++) adicionarLinhaDic(linhas[i]); // linha 0 = quantidade
+      pronto = palavras.size > 0;
+    }
+
+    // Mesma coisa, mas devolvendo o controle à tela a cada fatia. O dicionário
+    // tem centenas de milhares de palavras: de uma vez só, num tablet Android
+    // de entrada, travava toque e digitação por alguns segundos logo ao abrir
+    // a nota. Em fatias, a tela continua respondendo enquanto ele carrega.
+    async function carregarDicAsync(texto) {
+      const linhas = texto.split(/\r?\n/);
+      const FATIA = 8000;
+      for (let i = 1; i < linhas.length; i++) {
+        adicionarLinhaDic(linhas[i]);
+        if (i % FATIA === 0) await new Promise((r) => setTimeout(r, 0));
       }
       pronto = palavras.size > 0;
     }
@@ -155,7 +170,7 @@
     }
 
     return {
-      carregarAff, carregarDic, checar, sugerir,
+      carregarAff, carregarDic, carregarDicAsync, checar, sugerir,
       get pronto() { return pronto; },
       get tamanho() { return palavras.size; }
     };
@@ -314,7 +329,7 @@
             const set = (cab.match(/^SET\s+(\S+)/m) || [])[1] || "UTF-8";
             const dec = new TextDecoder(/utf-?8/i.test(set) ? "utf-8" : set);
             dic.carregarAff(dec.decode(bufAff));
-            dic.carregarDic(dec.decode(bufDic));
+            await dic.carregarDicAsync(dec.decode(bufDic));
             dicionarioOk = dic.pronto;
           } catch (e) {
             console.warn("Corretor: dicionário indisponível, só regras de escrita.", e);
