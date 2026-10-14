@@ -142,6 +142,29 @@ vídeos etc.), o caminho é migrar para o **Firebase Storage**, guardando ali
 os arquivos e salvando na nota apenas o link — isso exigiria habilitar o
 plano Blaze no projeto.
 
+## Corretor
+
+Dentro da nota, o botão **✓ Corretor** (ao lado da navegação de páginas) confere
+a página aberta e lista cada ponto com botões de correção: ortografia (com
+sugestões), palavra repetida, espaço duplicado, espaço antes/depois de
+pontuação, frase iniciada com minúscula e erros comuns (“afim de”, “a nível
+de”, “houveram”…). Também há **Ignorar** e **Adicionar ao dicionário** (guardado
+só neste aparelho).
+
+- **Automático:** o corretor confere sozinho ao abrir a nota, ao trocar de página
+  e quando você faz uma pausa na digitação. Se achar algo, o painel abre com as
+  correções e o botão mostra a quantidade (“✓ Corretor · 3”). Dá para desligar na
+  caixa “Verificar sozinho enquanto escrevo” do painel; o ✕ esconde o painel só
+  nesta nota.
+- **Privacidade:** tudo roda no aparelho, o texto da nota não é enviado a lugar
+  nenhum.
+- **Dicionário:** `dicionario-pt.aff` e `dicionario-pt.dic` (Hunspell, pt-BR). O
+  workflow `auto-versao.yml` baixa os dois na primeira publicação e os grava no
+  repositório (precisa do *Read and write permissions*, já pedido acima). Se
+  preferir, coloque você mesmo esses dois arquivos na raiz. Sem eles, o corretor
+  funciona só com as regras de escrita e avisa isso no painel.
+- Arquivos: `corretor.js` (motor + painel), estilos no fim de `style.css`.
+
 ## Grafi, o mascote
 
 Estados (atributo `data-estado`): `repouso`, `pensando`, `escrevendo`, `atento`,
