@@ -1,6 +1,6 @@
 // Aumente o número a cada nova publicação: é a mudança neste arquivo que faz
 // os aparelhos detectarem e aplicarem a atualização.
-const CACHE_NAME = 'grafia-shell-5d30acd750';
+const CACHE_NAME = 'grafia-shell-ac43e8f874';
 
 const SHELL_FILES = [
   './',
@@ -11,6 +11,9 @@ const SHELL_FILES = [
   './paulus.v1.js',
   './paulus-grafia.js',
   './mascote.js',
+  './corretor.js',
+  './dicionario-pt.aff',
+  './dicionario-pt.dic',
   './conhecimento.json',
   './manifest.json',
   './icon-192.png',
