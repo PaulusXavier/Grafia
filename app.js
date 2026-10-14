@@ -348,6 +348,58 @@ logoutBtn.addEventListener("click", async () => {
   window.location.reload();
 });
 
+/* ---------- Atalhos do ícone e Compartilhar (Android) ---------- */
+// Pressionar o ícone do app mostra "Nova nota" e "Buscar nas notas"
+// (?acao=nova | ?acao=buscar), e o menu Compartilhar de qualquer app Android
+// lista o Grafia (?title=&text=&url=), criando uma nota com o conteúdo.
+// Os parâmetros são lidos já na abertura, limpos da barra de endereço (para
+// um refresh não repetir a ação) e executados quando houver alguém logado.
+let pendingLaunch = null;
+(function readLaunchParams() {
+  const q = new URLSearchParams(window.location.search);
+  const acao = q.get("acao");
+  const title = (q.get("title") || "").trim();
+  const text = (q.get("text") || "").trim();
+  const url = (q.get("url") || "").trim();
+  if (title || text || url) {
+    const partes = [text];
+    if (url && !text.includes(url)) partes.push(url);
+    const corpo = partes.filter(Boolean).join("\n\n");
+    const primeiraLinha = (title || text || url).split(/\r?\n/)[0].trim();
+    pendingLaunch = {
+      tipo: "compartilhar",
+      titulo: primeiraLinha.length > 60 ? primeiraLinha.slice(0, 57) + "…" : primeiraLinha,
+      corpo
+    };
+  } else if (acao === "nova" || acao === "buscar") {
+    pendingLaunch = { tipo: acao };
+  }
+  if (pendingLaunch || q.has("acao")) {
+    try { history.replaceState(history.state, "", window.location.pathname); } catch (e) { /* ok */ }
+  }
+})();
+
+function runPendingLaunch() {
+  if (!pendingLaunch) return;
+  const launch = pendingLaunch;
+  pendingLaunch = null;
+  if (launch.tipo === "nova") {
+    openModal();
+  } else if (launch.tipo === "buscar") {
+    searchInput.focus();
+    searchInput.scrollIntoView({ block: "center" });
+  } else if (launch.tipo === "compartilhar") {
+    openModal();
+    // Depois do openModal, o conteúdo difere do "estado inicial" da nota: se a
+    // pessoa fechar sem salvar, o app pergunta antes de descartar o que veio
+    // do outro app.
+    noteTitle.value = launch.titulo;
+    currentPages[0] = launch.corpo;
+    loadPageIntoTextarea();
+    showToast("Conteúdo recebido — revise e salve");
+  }
+}
+
 onAuthStateChanged(auth, (user) => {
   loadingScreen.hidden = true;
   currentUser = user;
@@ -359,11 +411,14 @@ onAuthStateChanged(auth, (user) => {
     appScreen.hidden = false;
     authForm.reset();
     listenToNotes(user.uid);
+    runPendingLaunch();
   } else {
     appScreen.hidden = true;
     authScreen.hidden = false;
     if (unsubscribeNotes) { unsubscribeNotes(); unsubscribeNotes = null; }
     noteModal.hidden = true;
+    document.body.classList.remove("modal-open", "kb-open");
+    modalHistoryPushed = false;
     editingNoteId = null;
     searchInput.value = "";
     allNotes = [];
@@ -722,6 +777,99 @@ modalFullscreenBtn.addEventListener("click", async () => {
 // gesto do sistema), mantém o app e o botão sincronizados com a realidade.
 document.addEventListener("fullscreenchange", () => {
   if (!document.fullscreenElement && isModalFullscreen) setModalFullscreen(false);
+  // Em tela cheia real só aparece o que está DENTRO do elemento em tela cheia;
+  // sem isto, avisos como "Página adicionada" ficavam invisíveis.
+  (document.fullscreenElement || document.body).appendChild(toast);
+});
+
+/* ---------- Teclado virtual (tablet e celular) ---------- */
+// Em iPad/Android o teclado na tela NÃO encolhe a página: ele fica por cima e
+// esconde o que está embaixo (botão Salvar, campo do Paulus). A Visual
+// Viewport API informa a área que realmente está visível; guardamos isso em
+// variáveis CSS (--vv-h, --vv-top, --kb-inset) e numa classe no <body>
+// (kb-open), e o style.css encaixa o modal e o painel do Paulus nessa área.
+// Navegadores Android divergem: o Chrome por padrão só encolhe a área VISÍVEL
+// (visualViewport) e deixa a página do tamanho original; Firefox e alguns
+// Samsung Internet encolhem a própria página. Para os dois casos funcionarem,
+// guardamos a altura "sem teclado" (baseH) e comparamos com a área visível.
+let baseH = window.innerHeight;
+function campoDeTextoEmFoco() {
+  const a = document.activeElement;
+  if (!a) return false;
+  if (a.tagName === "TEXTAREA") return true;
+  return a.tagName === "INPUT" && !["checkbox", "radio", "button", "submit", "file"].includes(a.type);
+}
+
+function syncViewport() {
+  const vv = window.visualViewport;
+  const root = document.documentElement;
+  if (!vv) return;
+  // Sem campo em foco não há teclado: a altura atual é a referência (cobre
+  // girar o tablet, barras do sistema aparecendo/sumindo etc.).
+  baseH = campoDeTextoEmFoco() ? Math.max(baseH, window.innerHeight) : window.innerHeight;
+  const hidden = window.innerHeight - vv.height - vv.offsetTop; // quanto do fim da página o teclado cobre
+  const open = vv.scale <= 1.05 && baseH - vv.height > 80;       // >80px: é teclado, não barra do navegador
+  if (open) {
+    root.style.setProperty("--vv-h", `${Math.round(vv.height)}px`);
+    root.style.setProperty("--vv-top", `${Math.round(vv.offsetTop)}px`);
+    root.style.setProperty("--kb-inset", `${Math.max(0, Math.round(hidden))}px`);
+  } else {
+    root.style.removeProperty("--vv-h");
+    root.style.removeProperty("--vv-top");
+    root.style.removeProperty("--kb-inset");
+  }
+  document.body.classList.toggle("kb-open", open);
+}
+
+if (window.visualViewport) {
+  let vvFrame = 0;
+  const agendar = () => {
+    if (vvFrame) return;
+    vvFrame = requestAnimationFrame(() => { vvFrame = 0; syncViewport(); });
+  };
+  window.visualViewport.addEventListener("resize", agendar);
+  window.visualViewport.addEventListener("scroll", agendar);
+  window.addEventListener("resize", agendar);
+  window.addEventListener("orientationchange", () => setTimeout(syncViewport, 300));
+  // Ao fechar o teclado sem mexer no tamanho (alguns navegadores), reconfere.
+  document.addEventListener("focusout", () => setTimeout(syncViewport, 250));
+}
+
+/* ---------- Botão "voltar" do Android ---------- */
+// No app instalado, o "voltar" do sistema (botão ou gesto) fecha o APP INTEIRO
+// se não houver histórico — com uma nota aberta, isso jogava o usuário para
+// fora no meio da escrita. Ao abrir a nota guardamos uma entrada no histórico;
+// assim o "voltar" só fecha a nota (com a mesma pergunta de descartar, se
+// houver alterações), e uma segunda vez sai do app normalmente.
+let modalHistoryPushed = false;
+let ignoreNextPop = false;
+
+function pushModalHistory() {
+  if (modalHistoryPushed) return;
+  try {
+    history.pushState({ grafiaModal: true }, "");
+    modalHistoryPushed = true;
+  } catch (e) { /* sem histórico: o botão voltar age como antes */ }
+}
+
+function popModalHistory() {
+  if (!modalHistoryPushed) return;
+  modalHistoryPushed = false;
+  ignoreNextPop = true; // o history.back() abaixo dispara popstate; não é o usuário
+  setTimeout(() => { ignoreNextPop = false; }, 600); // trava de segurança
+  history.back();
+}
+
+window.addEventListener("popstate", () => {
+  if (ignoreNextPop) { ignoreNextPop = false; return; }
+  if (noteModal.hidden) return;
+  modalHistoryPushed = false; // o navegador já consumiu a entrada
+  const hasChanges = formState() !== modalSnapshot || attachmentsDirty;
+  if (hasChanges && !confirm("Descartar as alterações desta nota?")) {
+    pushModalHistory(); // ficou na nota: recoloca a entrada para o próximo "voltar"
+    return;
+  }
+  closeModal();
 });
 
 /* ---------- Modal: criar / editar ---------- */
@@ -751,7 +899,14 @@ function openModal(note = null) {
 
   modalSnapshot = formState();
   noteModal.hidden = false;
-  setTimeout(() => noteTitle.focus(), 50);
+  document.body.classList.add("modal-open");
+  pushModalHistory();
+  syncViewport();
+  // Em tela de toque, abrir uma nota que já existe NÃO foca o campo: o teclado
+  // virtual subiria na hora e cobriria o texto que a pessoa quer ler. Nota
+  // nova continua focando o título para já começar a digitar.
+  const isTouch = window.matchMedia("(pointer: coarse)").matches;
+  if (!note || !isTouch) setTimeout(() => noteTitle.focus(), 50);
 }
 
 let modalSnapshot = "";
@@ -759,6 +914,10 @@ const formState = () => JSON.stringify([noteTitle.value, noteDate.value, current
 
 function closeModal() {
   noteModal.hidden = true;
+  document.body.classList.remove("modal-open");
+  // Se há atualização esperando, o app vai recarregar logo abaixo; não mexe no
+  // histórico agora para a volta não competir com o recarregamento.
+  if (!updateReady) popModalHistory();
   if (isModalFullscreen) {
     setModalFullscreen(false);
     if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
@@ -787,7 +946,7 @@ modalClose.addEventListener("click", requestClose);
 // Só fecha se o clique COMEÇOU no fundo: selecionar texto e soltar o mouse
 // fora do modal não pode descartar o que foi digitado.
 let backdropPressed = false;
-noteModal.addEventListener("mousedown", (e) => { backdropPressed = e.target === noteModal; });
+noteModal.addEventListener("pointerdown", (e) => { backdropPressed = e.target === noteModal; });
 noteModal.addEventListener("click", (e) => {
   if (e.target === noteModal && backdropPressed) requestClose();
 });
@@ -801,6 +960,20 @@ document.addEventListener("keydown", (e) => {
   if ((e.ctrlKey || e.metaKey) && e.key === "Enter" && !noteModal.hidden) {
     e.preventDefault();
     noteForm.requestSubmit();
+  }
+  // Ctrl+S (tablet com teclado, ex.: capa-teclado ou Samsung DeX).
+  if ((e.ctrlKey || e.metaKey) && (e.key === "s" || e.key === "S") && !noteModal.hidden) {
+    e.preventDefault();
+    noteForm.requestSubmit();
+  }
+});
+
+// No campo Título, a tecla Enter do teclado virtual (e do físico) salvaria a
+// nota — com o texto ainda vazio, só dava erro. Agora ela pula para o texto.
+noteTitle.addEventListener("keydown", (e) => {
+  if (e.key === "Enter" && !e.isComposing && !e.ctrlKey && !e.metaKey) {
+    e.preventDefault();
+    noteContent.focus();
   }
 });
 
