@@ -142,11 +142,31 @@ vídeos etc.), o caminho é migrar para o **Firebase Storage**, guardando ali
 os arquivos e salvando na nota apenas o link — isso exigiria habilitar o
 plano Blaze no projeto.
 
+## Grafi, o mascote
+
+Estados (atributo `data-estado`): `repouso`, `pensando`, `escrevendo`, `atento`,
+`duvida`, `ouvindo`, `dormindo` (com "zzz") e `feliz` (com estrelinhas). Além
+disso, em `mascote.js`:
+
+- os olhos seguem o dedo/cursor;
+- toque no mascote da tela de entrada: pulinho e uma frase;
+- balão de fala reage a eventos: nota salva, salva offline, excluída, tudo
+  sincronizado, internet voltou/caiu, erro, versão nova pronta;
+- saudação por hora do dia ao abrir e ao entrar;
+- cochila após 2 min sem uso e acorda ao mexer;
+- fica "ouvindo" enquanto você digita uma nota;
+- respeita `prefers-reduced-motion` e nunca interrompe o Paulus trabalhando.
+
+Para disparar uma reação de outro ponto do app:
+`window.dispatchEvent(new CustomEvent('grafia:mascote', {detail:{evento:'nota-salva'}}))`.
+
 ## Publicar uma nova versão
 
-Sempre que alterar qualquer arquivo do app, aumente o número de `CACHE_NAME`
-em `service-worker.js` (ex.: `v8` → `v9`). É a mudança nesse arquivo que faz os
-aparelhos detectarem e aplicarem a atualização.
+Basta enviar (commit/push ou upload) os arquivos alterados para a branch `main`.
+O workflow `.github/workflows/auto-versao.yml` atualiza sozinho o `CACHE_NAME`
+em `service-worker.js`, e os aparelhos detectam e aplicam a atualização. Não é
+mais preciso mexer em número de versão. (No GitHub, em Settings → Actions →
+General → Workflow permissions, deixe **Read and write permissions**.)
 
 ## Paulus (assistente de IA)
 
