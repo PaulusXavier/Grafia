@@ -164,6 +164,63 @@ body {
   to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
+/* ---------- Grafi, o copiloto (estados do mascote) ----------
+   O estado vem do atributo data-estado no <svg class="mascot">:
+   repouso | pensando | escrevendo | atento | dormindo
+   Quem troca o estado é o paulus-grafia.js. Sem JS, fica em "repouso". */
+.mascot * { transform-box: fill-box; }
+.mascot .m-pontos, .mascot .m-sobrancelhas, .mascot .m-olhos-fechados,
+.mascot .m-boca-o, .mascot .m-boca-reta, .mascot .m-linha-nova { display: none; }
+
+.mascot .m-corpo { transform-origin: 50% 100%; animation: m-respira 3.6s ease-in-out infinite; }
+.mascot .m-olho { transform-origin: 50% 50%; animation: m-pisca 5.5s infinite; }
+.mascot .m-olhar { transition: transform 0.3s var(--ease); }
+.mascot .m-lapis { transform-origin: 100% 100%; }
+.mascot .m-brilho { transform-origin: 50% 50%; }
+
+@keyframes m-respira { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-1.5px); } }
+@keyframes m-pisca { 0%,94%,100% { transform: scaleY(1); } 97% { transform: scaleY(0.1); } }
+@keyframes m-ponto { 0%,70%,100% { opacity: 0.2; } 30% { opacity: 1; } }
+@keyframes m-brilha { 0%,100% { transform: scale(1); opacity: 0.9; } 50% { transform: scale(1.35); opacity: 1; } }
+@keyframes m-escreve { 0%,100% { transform: rotate(0deg); } 25% { transform: rotate(7deg); } 75% { transform: rotate(-5deg); } }
+@keyframes m-traco { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+
+/* pensando: olha para cima, pontinhos na folha, marcador brilha */
+.mascot[data-estado="pensando"] .m-pontos { display: block; }
+.mascot[data-estado="pensando"] .m-pontos circle { animation: m-ponto 1.2s infinite; }
+.mascot[data-estado="pensando"] .m-pontos circle:nth-child(2) { animation-delay: 0.2s; }
+.mascot[data-estado="pensando"] .m-pontos circle:nth-child(3) { animation-delay: 0.4s; }
+.mascot[data-estado="pensando"] .m-olhar { transform: translate(3px, -3px); }
+.mascot[data-estado="pensando"] .m-boca-sorriso { display: none; }
+.mascot[data-estado="pensando"] .m-boca-reta { display: block; }
+.mascot[data-estado="pensando"] .m-brilho { animation: m-brilha 1.2s ease-in-out infinite; }
+
+/* escrevendo: lápis rabisca, linha nova aparece, boquinha aberta */
+.mascot[data-estado="escrevendo"] .m-lapis { animation: m-escreve 0.5s ease-in-out infinite; }
+.mascot[data-estado="escrevendo"] .m-linha-nova { display: block; stroke-dasharray: 1; animation: m-traco 1.4s ease-out infinite; }
+.mascot[data-estado="escrevendo"] .m-olhar { transform: translate(0, 2px); }
+.mascot[data-estado="escrevendo"] .m-boca-sorriso { display: none; }
+.mascot[data-estado="escrevendo"] .m-boca-o { display: block; }
+.mascot[data-estado="escrevendo"] .m-brilho { animation: m-brilha 1.6s ease-in-out infinite; }
+
+/* atento: sobrancelhas sérias e sem pisca (crise, dado pessoal bloqueado) */
+.mascot[data-estado="atento"] .m-sobrancelhas { display: block; }
+.mascot[data-estado="atento"] .m-boca-sorriso { display: none; }
+.mascot[data-estado="atento"] .m-boca-reta { display: block; }
+.mascot[data-estado="atento"] .m-olho { animation: none; }
+.mascot[data-estado="atento"] .m-corpo { animation: none; }
+
+/* dormindo: sem conexão */
+.mascot[data-estado="dormindo"] .m-olhos { display: none; }
+.mascot[data-estado="dormindo"] .m-olhos-fechados { display: block; }
+.mascot[data-estado="dormindo"] .m-boca-sorriso { display: none; }
+.mascot[data-estado="dormindo"] .m-boca-reta { display: block; }
+.mascot[data-estado="dormindo"] .m-corpo { animation-duration: 6s; opacity: 0.85; }
+
+@media (prefers-reduced-motion: reduce) {
+  .mascot *, .mascot { animation: none !important; transition: none !important; }
+}
+
 .topbar-brand {
   display: flex;
   align-items: center;
