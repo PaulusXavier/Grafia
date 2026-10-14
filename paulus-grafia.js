@@ -183,7 +183,21 @@
     b.appendChild(linha);
   }
 
-  function marcarFase(t) { if (status) status.textContent = t; }
+  // Estado do mascote (Grafi): só troca a aparência; não lê nada do app.
+  // Vale para o mascote do topo e o do painel (não para o da tela de login).
+  var estadoBase = function () { return navigator.onLine === false ? 'dormindo' : 'repouso'; };
+  function estado(e) {
+    var nos = document.querySelectorAll('#mascot-slot-sm .mascot, .paulus-rosto .mascot');
+    for (var i = 0; i < nos.length; i++) nos[i].setAttribute('data-estado', e);
+  }
+  window.addEventListener('online', function () { if (!ocupado) estado(estadoBase()); });
+  window.addEventListener('offline', function () { if (!ocupado) estado(estadoBase()); });
+  estado(estadoBase());
+
+  function marcarFase(t) {
+    if (status) status.textContent = t;
+    estado(t.indexOf('pens') === 0 ? 'pensando' : t.indexOf('escrev') === 0 ? 'escrevendo' : estadoBase());
+  }
 
   async function enviar(texto) {
     if (!painel || ocupado) return;
@@ -233,6 +247,7 @@
       });
       resp.appendChild(ul);
     }
+    if (r.tipo === 'crise' || r.tipo === 'bloqueio') estado('atento');
     if (r.tipo === 'acao' && r.pedeConfirmacao) {
       var ok = el('button', 'paulus-mini', 'Confirmar');
       ok.type = 'button';
