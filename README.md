@@ -84,6 +84,65 @@ tem alguns ajustes pensados especificamente para toque:
   mais de uma coluna para aproveitar o espaço, em vez de ficar esticada
   numa coluna só.
 
+### Ajustes específicos para tablet
+
+- **Folha de edição grande:** a partir de 700px de largura, a janela da nota
+  passa de 520px para até 800px, com título e data lado a lado e o texto
+  ocupando todo o espaço que sobrar (letra um pouco maior, 1.1rem). No
+  tablet deitado (≥ 1000px) a lista fica mais larga, com mais colunas.
+- **Teclado virtual:** o iPad/Android põe o teclado *por cima* da página, o que
+  escondia o botão Salvar e o campo do Paulus. Agora `syncViewport()` (em
+  `app.js`) usa a Visual Viewport API para encaixar a nota e o painel do Paulus
+  na área realmente visível. Com o teclado aberto, os anexos e os rótulos dos
+  campos somem temporariamente para dar o máximo de espaço ao texto.
+- **Salvar sempre à mão:** a barra com Salvar/Excluir/Imprimir fica grudada no
+  rodapé da janela da nota.
+- **Toque, sem :hover grudado:** em telas de toque o cartão não fica
+  "levantado" depois de tocado; o toque tem feedback próprio (`:active`).
+- **Alvos de toque ≥ 44px** em botões, campos, caixa de seleção do corretor e
+  controles do Paulus. A bolinha vermelha de fechar mantém o desenho pequeno,
+  mas a área de toque dela é maior.
+- **Altura correta (`100dvh`)** em vez de `100vh`, que no iPad/Android inclui a
+  área escondida pela barra do navegador.
+- **Ao abrir uma nota que já existe**, o teclado não sobe sozinho (cobriria o
+  texto que você quer ler); em nota nova, o título continua em foco.
+- O fundo da janela fecha a nota com `pointerdown` (mouse, dedo ou caneta) e a
+  página de trás não rola mais por baixo da nota aberta.
+- Metatags `apple-mobile-web-app-*` para abrir em tela cheia quando instalado
+  na tela inicial do iPad.
+
+### Ajustes específicos para Android
+
+- **Botão "voltar" do sistema:** com uma nota aberta, "voltar" fecha só a nota
+  (com a mesma pergunta de descartar, se houver alterações) em vez de fechar o
+  app inteiro. Fora da nota, "voltar" sai do app normalmente.
+- **Compartilhar → Grafia:** em qualquer app Android (Chrome, WhatsApp, PDF…),
+  *Compartilhar* lista o Grafia e cria uma nota com o título, o texto e o link
+  recebidos. A nota abre para revisão: se você fechar sem salvar, o app
+  pergunta antes de descartar. (`share_target` no `manifest.json`.)
+- **Atalhos no ícone:** segurar o ícone do app mostra *Nova nota* e *Buscar nas
+  notas* (`shortcuts` no `manifest.json`; tratados em `app.js`, por
+  `?acao=nova` e `?acao=buscar`).
+- **Teclado Gboard:** a tecla Enter no campo *Título* agora vai para o texto
+  (antes tentava salvar a nota vazia); o teclado mostra "próximo", "ir" e
+  "buscar" conforme o campo (`enterkeyhint`). Com teclado físico ou Samsung
+  DeX, **Ctrl+S** também salva.
+- **Detecção de teclado para Chrome, Samsung Internet e Firefox:** os navegadores
+  Android divergem (alguns só encolhem a área visível, outros encolhem a
+  página). `syncViewport()` trata os dois casos.
+- **Dicionário do corretor sem travar:** os ~4,4 MB do dicionário passam a ser
+  lidos em fatias (`carregarDicAsync`, em `corretor.js`), devolvendo o controle
+  à tela entre elas. Em tablets mais fracos, isso evita o travamento ao abrir
+  uma nota.
+- **Sem modo escuro forçado:** `color-scheme: light` (meta e CSS) para o
+  navegador não inverter as cores do "papel".
+- **Avisos em tela cheia:** o aviso rápido ("Página adicionada" etc.) agora
+  aparece também no modo tela cheia real do Android.
+
+Depois de publicar, o Android atualiza o `manifest.json` do app instalado
+sozinho em até cerca de um dia; para ver *Compartilhar* e os atalhos na hora,
+desinstale e instale de novo o app.
+
 ## Melhorias visuais e de uso
 
 - Cada nota (nos cartões da lista e na janela de edição) tem uma pequena
