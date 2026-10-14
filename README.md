@@ -148,6 +148,20 @@ Sempre que alterar qualquer arquivo do app, aumente o número de `CACHE_NAME`
 em `service-worker.js` (ex.: `v8` → `v9`). É a mudança nesse arquivo que faz os
 aparelhos detectarem e aplicarem a atualização.
 
+## Paulus (assistente de IA)
+
+Ao tocar no mascote do topo (com a conta logada) abre o painel do **Paulus**, o copiloto compartilhado
+pelos apps (Argo SUAS, Anona, Toth, Umbrella). Ele explica o app, abre uma nota em branco, vai para a busca e
+tira dúvidas do SUAS e da prática da psicologia, citando a norma quando usa uma.
+
+- **Não lê as notas.** Não vê títulos, textos, páginas nem anexos, e não busca dentro delas. Pergunta com nome,
+  documento, telefone ou endereço é bloqueada no aparelho, antes de qualquer envio.
+- Arquivos: `paulus.v1.js` e `conhecimento.json` (cópias do Paulus, pacote *geral*) e `paulus-grafia.js` (a ligação).
+- O endereço do Worker fica em `ENDPOINT`, no topo de `paulus-grafia.js`. O Worker precisa estar publicado com o
+  app `grafia` (veja `docs/INTEGRACAO.md` do Paulus).
+- Para atualizar o Paulus: `npm run build` no projeto dele e copie `dist/paulus.v1.js` e
+  `dist/conhecimento-geral.json` (como `conhecimento.json`). Depois aumente o `CACHE_NAME` do service worker.
+
 ## Segurança
 
 Reforços já aplicados no código:
