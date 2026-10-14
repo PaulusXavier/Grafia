@@ -1298,3 +1298,41 @@ input:focus, textarea:focus {
   .paulus-painel { right: 0; bottom: 0; width: 100vw; height: 82vh; border-radius: var(--radius) var(--radius) 0 0; }
 }
 @media print { .paulus-painel { display: none !important; } }
+
+/* ---------- Corretor (ortografia e escrita) ---------- */
+.btn-corretor { border-color: var(--sage); margin-left: auto; font-weight: 600; }
+.corretor-panel {
+  margin-top: 10px;
+  border: 1px solid var(--rule);
+  border-left: 4px solid var(--sage);
+  border-radius: 10px;
+  background: var(--paper);
+  padding: 10px 12px;
+  max-height: 40vh;
+  overflow-y: auto;
+  font-size: 0.9rem;
+}
+.corretor-panel[hidden] { display: none; }
+.btn-corretor.tem-erros { border-color: var(--ochre); background: rgba(201, 138, 59, 0.15); }
+.corretor-auto { display: flex; align-items: center; gap: 6px; margin-top: 4px; color: var(--ink-soft); font-size: 0.8rem; cursor: pointer; }
+.corretor-auto input { accent-color: var(--sage); }
+.corretor-topo { display: flex; justify-content: space-between; align-items: center; color: var(--sage-dark); }
+.corretor-fechar { background: none; border: 0; color: var(--ink-soft); font-size: 1rem; cursor: pointer; padding: 4px 8px; }
+.corretor-aviso { color: var(--ink-soft); font-size: 0.82rem; margin: 6px 0 0; }
+.corretor-lista { list-style: none; margin: 8px 0 0; padding: 0; }
+.corretor-item { padding: 8px 0; border-top: 1px dashed var(--rule); }
+.corretor-contexto { margin: 0; color: var(--ink); overflow-wrap: anywhere; }
+.corretor-contexto mark { background: rgba(201, 138, 59, 0.25); border-bottom: 2px solid var(--ochre); color: inherit; border-radius: 3px; padding: 0 2px; }
+.corretor-ortografia .corretor-contexto mark { background: rgba(181, 83, 60, 0.15); border-bottom-color: var(--danger); }
+.corretor-msg { margin: 2px 0 6px; color: var(--ink-soft); font-size: 0.8rem; }
+.corretor-acoes { display: flex; flex-wrap: wrap; gap: 6px; }
+.corretor-sug, .corretor-ign {
+  border: 1px solid var(--sage); border-radius: 999px; background: none;
+  padding: 5px 12px; font-size: 0.82rem; cursor: pointer; color: var(--sage-dark);
+}
+.corretor-sug { background: var(--sage); color: #fff; }
+.corretor-sug:hover { background: var(--sage-dark); }
+.corretor-ign { border-color: var(--rule); color: var(--ink-soft); }
+.corretor-ign:hover { border-color: var(--sage); }
+@media (pointer: coarse) { .corretor-sug, .corretor-ign { padding: 9px 14px; } }
+@media print { .corretor-panel, .btn-corretor { display: none !important; } }
