@@ -171,7 +171,10 @@ body {
 .mascot * { transform-box: fill-box; }
 .mascot .m-pontos, .mascot .m-sobrancelhas, .mascot .m-olhos-fechados,
 .mascot .m-boca-o, .mascot .m-boca-reta, .mascot .m-linha-nova,
-.mascot .m-duvida, .mascot .m-boca-ondas { display: none; }
+.mascot .m-duvida, .mascot .m-boca-ondas, .mascot .m-olhos-feliz,
+.mascot .m-boca-feliz, .mascot .m-festa, .mascot .m-zzz { display: none; }
+.mascot { overflow: visible; }
+.mascot .m-olhos { transition: transform 0.12s ease-out; }
 
 .mascot .m-corpo { transform-origin: 50% 100%; animation: m-respira 3.6s ease-in-out infinite; }
 .mascot .m-olho { transform-origin: 50% 50%; animation: m-pisca 5.5s infinite; }
@@ -228,8 +231,81 @@ body {
 .mascot[data-estado="dormindo"] .m-boca-reta { display: block; }
 .mascot[data-estado="dormindo"] .m-corpo { animation-duration: 6s; opacity: 0.85; }
 
+/* feliz: comemora (nota salva, tudo sincronizado, internet de volta) */
+.mascot[data-estado="feliz"] .m-olhos { display: none; }
+.mascot[data-estado="feliz"] .m-olhos-feliz { display: block; }
+.mascot[data-estado="feliz"] .m-boca-sorriso { display: none; }
+.mascot[data-estado="feliz"] .m-boca-feliz { display: block; }
+.mascot[data-estado="feliz"] .m-festa { display: block; }
+.mascot[data-estado="feliz"] .m-estrela { transform-origin: 50% 50%; animation: m-estrela 0.9s ease-in-out infinite; }
+.mascot[data-estado="feliz"] .m-festa g:nth-child(2) .m-estrela { animation-delay: 0.2s; }
+.mascot[data-estado="feliz"] .m-festa g:nth-child(3) .m-estrela { animation-delay: 0.4s; }
+.mascot[data-estado="feliz"] .m-festa g:nth-child(4) .m-estrela { animation-delay: 0.6s; }
+.mascot[data-estado="feliz"] .m-corpo { animation: m-pula 0.55s var(--ease) 2; }
+.mascot[data-estado="feliz"] .m-lapis { animation: m-escreve 0.4s ease-in-out 3; }
+.mascot[data-estado="feliz"] .m-brilho { animation: m-brilha 0.9s ease-in-out infinite; }
+
+/* dormindo ganha "zzz" e a respiração fica lenta */
+.mascot[data-estado="dormindo"] .m-zzz { display: block; }
+.mascot[data-estado="dormindo"] .m-z { animation: m-zzz 2.8s ease-in-out infinite; }
+.mascot[data-estado="dormindo"] .m-z:nth-child(2) { animation-delay: 0.5s; }
+.mascot[data-estado="dormindo"] .m-z:nth-child(3) { animation-delay: 1s; }
+
+/* pulinho ao toque/clique (classe temporária, posta pelo mascote.js) */
+.mascot.pulando .m-corpo { animation: m-pula 0.5s var(--ease); }
+
+@keyframes m-pula {
+  0%, 100% { transform: translateY(0) scale(1, 1); }
+  30% { transform: translateY(-9px) scale(0.97, 1.04); }
+  60% { transform: translateY(0) scale(1.04, 0.96); }
+}
+@keyframes m-estrela { 0%, 100% { transform: scale(0.4) rotate(0); opacity: 0.4; } 50% { transform: scale(1.2) rotate(25deg); opacity: 1; } }
+@keyframes m-zzz { 0%, 100% { opacity: 0; transform: translate(0, 4px); } 40%, 70% { opacity: 0.9; transform: translate(2px, -3px); } }
+
+/* Balão de fala do Grafi */
+.mascot-slot { position: relative; }
+.grafi-fala {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 8px);
+  left: 50%;
+  transform: translate(-50%, -4px) scale(0.96);
+  width: max-content;
+  max-width: min(220px, 78vw);
+  padding: 7px 12px;
+  border-radius: 12px;
+  background: var(--paper);
+  border: 2px solid var(--sage-dark);
+  color: var(--ink);
+  font-size: 0.82rem;
+  line-height: 1.3;
+  text-align: center;
+  box-shadow: 0 4px 14px rgba(67, 90, 79, 0.18);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s var(--ease), transform 0.2s var(--ease);
+}
+.grafi-fala.show { opacity: 1; transform: translate(-50%, 0) scale(1); }
+.grafi-fala::before {
+  content: "";
+  position: absolute;
+  top: -7px;
+  left: 50%;
+  width: 10px;
+  height: 10px;
+  background: var(--paper);
+  border-left: 2px solid var(--sage-dark);
+  border-top: 2px solid var(--sage-dark);
+  transform: translateX(-50%) rotate(45deg);
+}
+/* no topo o mascote é pequeno e fica à esquerda: o balão abre para a direita */
+.mascot-slot-sm .grafi-fala { left: -4px; transform: translate(0, -4px) scale(0.96); text-align: left; }
+.mascot-slot-sm .grafi-fala.show { transform: translate(0, 0) scale(1); }
+.mascot-slot-sm .grafi-fala::before { left: 16px; }
+
 @media (prefers-reduced-motion: reduce) {
   .mascot *, .mascot { animation: none !important; transition: none !important; }
+  .grafi-fala { transition: none; }
 }
 
 .topbar-brand {
