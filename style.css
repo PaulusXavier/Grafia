@@ -166,11 +166,12 @@ body {
 
 /* ---------- Grafi, o copiloto (estados do mascote) ----------
    O estado vem do atributo data-estado no <svg class="mascot">:
-   repouso | pensando | escrevendo | atento | dormindo
+   repouso | pensando | escrevendo | atento | duvida | ouvindo | dormindo
    Quem troca o estado é o paulus-grafia.js. Sem JS, fica em "repouso". */
 .mascot * { transform-box: fill-box; }
 .mascot .m-pontos, .mascot .m-sobrancelhas, .mascot .m-olhos-fechados,
-.mascot .m-boca-o, .mascot .m-boca-reta, .mascot .m-linha-nova { display: none; }
+.mascot .m-boca-o, .mascot .m-boca-reta, .mascot .m-linha-nova,
+.mascot .m-duvida, .mascot .m-boca-ondas { display: none; }
 
 .mascot .m-corpo { transform-origin: 50% 100%; animation: m-respira 3.6s ease-in-out infinite; }
 .mascot .m-olho { transform-origin: 50% 50%; animation: m-pisca 5.5s infinite; }
@@ -209,6 +210,16 @@ body {
 .mascot[data-estado="atento"] .m-boca-reta { display: block; }
 .mascot[data-estado="atento"] .m-olho { animation: none; }
 .mascot[data-estado="atento"] .m-corpo { animation: none; }
+
+/* dúvida: "não consta" / erro (sem_resposta, erro do Paulus) */
+.mascot[data-estado="duvida"] .m-duvida { display: block; }
+.mascot[data-estado="duvida"] .m-boca-sorriso { display: none; }
+.mascot[data-estado="duvida"] .m-boca-ondas { display: block; }
+.mascot[data-estado="duvida"] .m-olhar { transform: translate(-3px, 0); }
+
+/* ouvindo: inclina a cabeça enquanto a pessoa digita */
+.mascot[data-estado="ouvindo"] .m-corpo { animation: none; transform: rotate(-4deg); transition: transform 0.3s var(--ease); }
+.mascot[data-estado="ouvindo"] .m-olhar { transform: translate(0, 1px); }
 
 /* dormindo: sem conexão */
 .mascot[data-estado="dormindo"] .m-olhos { display: none; }
