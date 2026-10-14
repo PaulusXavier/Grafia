@@ -125,6 +125,11 @@ function reloadForUpdate() {
 }
 
 /* ---------- Utilitários ---------- */
+// Avisa o mascote (mascote.js) do que aconteceu; ele decide a reação.
+function mascotEvent(evento) {
+  window.dispatchEvent(new CustomEvent("grafia:mascote", { detail: { evento } }));
+}
+
 function showToast(message) {
   toast.textContent = message;
   toast.hidden = false;
@@ -214,10 +219,12 @@ window.addEventListener("online", () => {
   updateOfflineBanner();
   setSyncStatus(pendingWritesCount > 0 ? "syncing" : "synced");
   showToast("Conexão restabelecida");
+  mascotEvent("online");
 });
 
 window.addEventListener("offline", () => {
   updateOfflineBanner();
+  mascotEvent("offline");
 });
 
 // Estado inicial: já mostra a faixa de offline se o app abrir sem conexão.
@@ -388,6 +395,7 @@ function listenToNotes(uid) {
         );
       renderNotes();
 
+      const hadPending = pendingWritesCount > 0;
       pendingWritesCount = snapshot.docs.filter((d) => d.metadata.hasPendingWrites).length;
 
       if (!navigator.onLine) {
@@ -396,6 +404,8 @@ function listenToNotes(uid) {
         setSyncStatus("syncing");
       } else {
         setSyncStatus("synced");
+        // Só comemora quando havia algo esperando para subir (ex.: feito offline).
+        if (hadPending && pendingWritesCount === 0 && !snapshot.metadata.fromCache) mascotEvent("sincronizado");
       }
     },
     (err) => {
@@ -835,8 +845,10 @@ noteForm.addEventListener("submit", async (e) => {
         : "Salvo no aparelho — será sincronizado quando a internet voltar"
     );
     closeModal();
+    mascotEvent(result === "synced" ? "nota-salva" : "nota-salva-offline");
   } catch (err) {
     console.error(err);
+    mascotEvent("erro");
     noteFormError.textContent = "Não foi possível salvar. Verifique os dados e tente novamente.";
     noteFormError.hidden = false;
   } finally {
@@ -853,8 +865,10 @@ deleteBtn.addEventListener("click", async () => {
     const result = await commitWrite(deleteDoc(doc(notesRef, editingNoteId)));
     showToast(result === "synced" ? "Nota excluída" : "Exclusão salva — será sincronizada ao voltar a conexão");
     closeModal();
+    mascotEvent("nota-excluida");
   } catch (err) {
     console.error(err);
+    mascotEvent("erro");
     noteFormError.textContent = "Não foi possível excluir. Tente novamente.";
     noteFormError.hidden = false;
   } finally {
@@ -907,6 +921,10 @@ if ("serviceWorker" in navigator) {
             registration.update().catch(() => {});
           }
         });
+        // Também verifica a cada 15 minutos (app aberto o dia todo) e quando
+        // a internet volta.
+        setInterval(() => registration.update().catch(() => {}), 15 * 60 * 1000);
+        window.addEventListener("online", () => registration.update().catch(() => {}));
       })
       .catch((err) => console.error("Falha ao registrar service worker:", err));
   });
@@ -922,6 +940,7 @@ if ("serviceWorker" in navigator) {
     if (!noteModal.hidden) {
       updateReady = true;
       showToast("Nova versão do app pronta — será aplicada ao fechar esta nota");
+      mascotEvent("atualizacao");
       return;
     }
     reloadForUpdate();
