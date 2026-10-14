@@ -83,6 +83,9 @@
     campo.placeholder = 'Pergunte sobre o app ou o SUAS…';
     campo.setAttribute('aria-label', 'Pergunta para o Paulus');
     campo.autocomplete = 'off';
+    // Inclina a cabeça enquanto a pessoa digita (só aparência; o texto digitado não é lido aqui).
+    campo.addEventListener('input', function () { if (!ocupado) estado(campo.value ? 'ouvindo' : estadoBase()); });
+    campo.addEventListener('blur', function () { if (!ocupado) estado(estadoBase()); });
     botaoEnviar = el('button', 'paulus-enviar', 'Enviar');
     botaoEnviar.type = 'submit';
     form.appendChild(campo); form.appendChild(botaoEnviar);
@@ -194,7 +197,15 @@
   window.addEventListener('offline', function () { if (!ocupado) estado(estadoBase()); });
   estado(estadoBase());
 
+  var timerEstado = null;
+  function voltarDepois(e, ms) {
+    estado(e);
+    clearTimeout(timerEstado);
+    timerEstado = setTimeout(function () { if (!ocupado) estado(estadoBase()); }, ms);
+  }
+
   function marcarFase(t) {
+    clearTimeout(timerEstado);
     if (status) status.textContent = t;
     estado(t.indexOf('pens') === 0 ? 'pensando' : t.indexOf('escrev') === 0 ? 'escrevendo' : estadoBase());
   }
@@ -247,7 +258,9 @@
       });
       resp.appendChild(ul);
     }
-    if (r.tipo === 'crise' || r.tipo === 'bloqueio') estado('atento');
+    // O mascote acompanha o que o Paulus respondeu e volta ao normal depois de uns segundos.
+    if (r.tipo === 'crise' || r.tipo === 'bloqueio') voltarDepois('atento', 10000);
+    else if (r.tipo === 'sem_resposta' || r.tipo === 'erro') voltarDepois('duvida', 8000);
     if (r.tipo === 'acao' && r.pedeConfirmacao) {
       var ok = el('button', 'paulus-mini', 'Confirmar');
       ok.type = 'button';
