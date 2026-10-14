@@ -1336,3 +1336,183 @@ input:focus, textarea:focus {
 .corretor-ign:hover { border-color: var(--sage); }
 @media (pointer: coarse) { .corretor-sug, .corretor-ign { padding: 9px 14px; } }
 @media print { .corretor-panel, .btn-corretor { display: none !important; } }
+
+/* =====================================================================
+   TABLET (iPad, Android) — toque, teclado virtual e telas grandes
+   Tudo aqui é aditivo: o computador e o celular em pé ficam como estavam.
+   ===================================================================== */
+
+/* ---------- Higiene de toque ---------- */
+:root { color-scheme: light; }
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+
+/* Sem puxar-para-atualizar acidental no app instalado, nem o fundo rolando
+   por trás do modal. */
+body { overscroll-behavior-y: none; }
+body.modal-open { overflow: hidden; }
+.modal, .corretor-panel, .paulus-lista { overscroll-behavior: contain; }
+
+/* touch-action: manipulation tira o atraso e o zoom por toque duplo dos
+   botões; o realce cinza do toque some porque já há estado :active próprio. */
+button, .btn, .note-card, .search, label.corretor-auto {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+button { -webkit-touch-callout: none; }
+.btn, .btn-page, .btn-icon, .mac-dot, .corretor-sug, .corretor-ign { user-select: none; -webkit-user-select: none; }
+
+/* ---------- Altura de tela: 100vh engana no iPad/Android ---------- */
+/* 100vh inclui a área escondida pela barra do navegador; 100dvh acompanha a
+   área visível. A linha antiga fica como reserva para navegadores sem dvh. */
+body, .screen, #app-screen.pad-sheet { min-height: 100vh; min-height: 100dvh; }
+
+/* ---------- Sem efeito :hover "grudado" depois do toque ---------- */
+/* Em tela de toque o :hover fica ativo até tocar em outro lugar, deixando o
+   cartão levantado e botões escuros. Aqui o toque ganha um feedback próprio. */
+@media (hover: none) {
+  .note-card:hover { transform: none; box-shadow: none; border-color: var(--rule); }
+  .note-card:hover::after { border-width: 0 15px 15px 0; }
+  .note-card:active { border-color: var(--sage); background: #FBF8EC; }
+  .btn-primary:hover:not(:disabled) { background: var(--sage); }
+  .btn-primary:active:not(:disabled) { background: var(--sage-dark); }
+  .btn-secondary:hover:not(:disabled) { background: var(--linen); }
+  .btn-secondary:active:not(:disabled) { background: #eef1ec; }
+  .btn-danger:hover:not(:disabled) { background: transparent; }
+  .btn-danger:active:not(:disabled) { background: rgba(181, 83, 60, 0.12); }
+  .btn-page:hover:not(:disabled) { background: none; border-color: var(--rule); }
+  .btn-page-danger:hover:not(:disabled) { background: none; border-color: var(--rule); }
+  .btn-page:active:not(:disabled) { background: rgba(92, 122, 107, 0.12); border-color: var(--sage); }
+  .btn-page-danger:active:not(:disabled) { background: rgba(181, 83, 60, 0.12); border-color: var(--danger); }
+  .btn-attach:hover:not(:disabled) { background: none; }
+  .btn-attach:active:not(:disabled) { background: rgba(92, 122, 107, 0.12); }
+  .btn-icon:hover, .attachment-action:hover { background: none; }
+  .btn-icon:active, .attachment-action:active { background: var(--rule); }
+  .corretor-sug:hover { background: var(--sage); }
+  .corretor-sug:active { background: var(--sage-dark); }
+}
+
+/* ---------- Áreas de toque de pelo menos 44px ---------- */
+@media (pointer: coarse) {
+  .btn { min-height: 44px; padding: 11px 22px; }
+  .btn-page { min-height: 44px; font-size: 0.9rem; }
+  .btn-icon, .attachment-action {
+    min-width: 44px; min-height: 44px;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .btn-attach { min-height: 44px; }
+  .btn-link { min-height: 44px; padding: 10px 6px; }
+  input:not([type="checkbox"]):not([type="file"]):not([type="search"]) { min-height: 44px; }
+  .search { min-height: 48px; }
+  .search input { min-height: 28px; }
+
+  /* A bolinha vermelha continua pequena no desenho, mas a área de toque dela
+     (e só dela) passa de 44px. */
+  .mac-dot-close { position: relative; }
+  .mac-dot-close::after { content: ""; position: absolute; inset: -12px; }
+
+  .corretor-sug, .corretor-ign, .corretor-fechar { min-height: 44px; }
+  .corretor-auto { min-height: 44px; font-size: 0.88rem; gap: 10px; }
+  .corretor-auto input { width: 22px; height: 22px; }
+
+  .paulus-chip, .paulus-mini, .paulus-btn-topo, .paulus-enviar { min-height: 44px; }
+  .paulus-fechar { min-width: 44px; min-height: 44px; }
+  .paulus-campo { min-height: 44px; }
+}
+
+/* ---------- Rodapé do modal sempre à mão ---------- */
+/* O botão Salvar fica grudado no fim da área visível do modal, em vez de
+   exigir rolar até o final (principalmente com o teclado aberto). */
+.modal { padding-bottom: 0; max-height: 100%; }
+.modal-actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  margin-top: 6px;
+  padding: 12px 0 calc(16px + env(safe-area-inset-bottom, 0px));
+  background: var(--paper);
+  box-shadow: 0 -10px 12px -8px rgba(58, 54, 46, 0.12);
+}
+.modal-backdrop.is-fullscreen .modal-actions { position: static; box-shadow: none; padding-bottom: 0; }
+
+/* Toast acima do teclado e da barra inferior do iPad. */
+.toast { bottom: calc(24px + env(safe-area-inset-bottom, 0px) + var(--kb-inset, 0px)); }
+
+/* ---------- Teclado aberto: o modal cabe na área visível ---------- */
+/* --vv-h / --vv-top vêm de syncViewport() no app.js (só existem com teclado). */
+body.kb-open .modal-backdrop {
+  top: var(--vv-top, 0px);
+  bottom: auto;
+  height: var(--vv-h, 100%);
+  padding-top: 8px;
+  padding-bottom: 0;
+  align-items: stretch;
+}
+body.kb-open .modal {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding-top: 12px;
+}
+body.kb-open .modal-header { flex: none; margin-bottom: 8px; }
+body.kb-open .note-form { flex: 1 1 auto; min-height: 0; gap: 8px; }
+body.kb-open .field-content { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; }
+body.kb-open .field-content textarea { flex: 1 1 auto; min-height: 80px; resize: none; }
+/* Anexos e rótulos dão lugar ao texto enquanto o teclado está na tela. */
+body.kb-open .note-form > .field:not(.field-content):not(.field-row) { display: none; }
+body.kb-open .field-title-date > span { display: none; }
+body.kb-open .modal-actions { padding-bottom: 12px; }
+body.kb-open .modal-backdrop.is-fullscreen .modal { padding-bottom: 0; }
+
+/* Paulus acima do teclado. */
+body.kb-open .paulus-painel {
+  bottom: var(--kb-inset, 0px);
+  height: min(560px, calc(var(--vv-h, 100vh) - 12px));
+}
+
+/* ---------- Tablet: o modal vira uma folha grande ---------- */
+@media (min-width: 700px) {
+  .modal { max-width: 800px; padding: 28px 36px 0 60px; }
+  .modal-header { margin-bottom: 24px; }
+  .modal-header h2 { font-size: 1.3rem; }
+
+  /* Título largo, data estreita, lado a lado. */
+  .field-row { flex-direction: row; gap: 16px; }
+  .field-row .field-title-date { flex: 1 1 auto; min-width: 0; }
+  .field-row .field-title-date:last-child { flex: 0 0 210px; }
+
+  .note-form { gap: 18px; }
+  .note-form textarea { font-size: 1.1rem; line-height: 1.55; padding: 14px 16px; }
+
+  .note-card-title { font-size: 1.12rem; }
+  .note-card-preview { font-size: 0.93rem; }
+  .note-card { padding: 16px 18px; }
+}
+
+/* Tablet com altura de sobra: o texto ocupa o espaço que sobrar, em vez de
+   ficar uma caixinha de 8 linhas no meio de uma folha vazia. */
+@media (min-width: 700px) and (min-height: 560px) {
+  .modal { display: flex; flex-direction: column; height: min(100%, 900px); }
+  .modal-header { flex: none; }
+  .note-form { flex: 1 0 auto; }
+  .field-content { display: flex; flex-direction: column; flex: 1 1 auto; }
+  .field-content textarea { flex: 1 1 auto; min-height: 240px; resize: none; }
+}
+
+/* Tablet deitado (paisagem): lista com mais colunas e folha mais larga. */
+@media (min-width: 1000px) {
+  #app-screen.pad-sheet { max-width: 1120px; padding: 40px 48px 40px 88px; }
+  #app-screen.pad-sheet::before { left: 66px; }
+  .notes-list { grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 18px; }
+  .brand-sm { font-size: 1.5rem; }
+}
+
+/* O painel do Paulus pode ser maior no tablet. */
+@media (min-width: 700px) {
+  .paulus-painel {
+    bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+    right: calc(16px + env(safe-area-inset-right, 0px));
+    width: min(440px, calc(100vw - 32px));
+    height: min(640px, calc(100dvh - 32px));
+  }
+  .paulus-balao { font-size: 1rem; }
+}
