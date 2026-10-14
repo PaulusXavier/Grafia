@@ -1,6 +1,6 @@
 // Aumente o número a cada nova publicação: é a mudança neste arquivo que faz
 // os aparelhos detectarem e aplicarem a atualização.
-const CACHE_NAME = 'bloco-notas-shell-v20';
+const CACHE_NAME = 'bloco-notas-shell-v21';
 
 const SHELL_FILES = [
   './',
