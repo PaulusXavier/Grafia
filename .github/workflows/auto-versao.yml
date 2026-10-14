@@ -18,6 +18,25 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Dicionário de ortografia do Corretor (Hunspell, português do Brasil).
+      # Baixado uma única vez e guardado no repositório; assim o app o serve do
+      # próprio site e funciona offline. Para trocar, apague os dois arquivos.
+      - name: Instalar dicionário do Corretor
+        run: |
+          if [ -f dicionario-pt.dic ] && [ -f dicionario-pt.aff ]; then echo "Dicionário já instalado."; exit 0; fi
+          mkdir -p /tmp/dic && cd /tmp/dic
+          for PKG in dictionary-pt-br dictionary-pt; do
+            if npm pack "$PKG" --silent >/dev/null 2>&1; then
+              tar xzf ./*.tgz
+              if [ -f package/index.dic ]; then
+                cp package/index.aff "$GITHUB_WORKSPACE/dicionario-pt.aff"
+                cp package/index.dic "$GITHUB_WORKSPACE/dicionario-pt.dic"
+                echo "Dicionário instalado a partir de $PKG"; break
+              fi
+            fi
+            rm -rf /tmp/dic/* 
+          done
+
       - name: Gerar nova versão a partir do conteúdo dos arquivos
         run: |
           HASH=$(find . -type f \
@@ -29,8 +48,9 @@ jobs:
 
       - name: Commit se mudou
         run: |
-          if git diff --quiet; then echo "Sem mudanças."; exit 0; fi
+          git add -A
+          if git diff --cached --quiet; then echo "Sem mudanças."; exit 0; fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git commit -am "Atualiza versão do cache [skip ci]"
+          git commit -m "Atualiza versão do cache [skip ci]"
           git push
