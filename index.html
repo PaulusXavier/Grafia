@@ -5,6 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Grafia · Bloco de Notas</title>
 <meta name="theme-color" content="#5C7A6B">
+<!-- O visual é de papel claro: avisa o navegador para não aplicar "modo escuro
+     forçado" (Chrome e Samsung Internet no Android podem inverter as cores). -->
+<meta name="color-scheme" content="light">
 <meta name="robots" content="noindex, nofollow">
 <!-- Camada extra de defesa: mesmo que algum dia um bug permita injetar HTML,
      o navegador só executa scripts vindos deste site e do SDK do Firebase, e
@@ -22,6 +25,10 @@
 ">
 
 <meta name="mobile-web-app-capable" content="yes">
+<!-- iPad/iPhone: abre em tela cheia (sem barra do Safari) quando instalado na tela inicial -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Grafia">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
@@ -152,11 +159,11 @@
     <form id="auth-form" class="auth-form">
       <label class="field">
         <span>E-mail</span>
-        <input type="email" id="auth-email" required autocomplete="email">
+        <input type="email" id="auth-email" required autocomplete="email" enterkeyhint="next">
       </label>
       <label class="field">
         <span>Senha</span>
-        <input type="password" id="auth-password" required autocomplete="current-password" minlength="6" autocapitalize="off" autocorrect="off">
+        <input type="password" id="auth-password" required autocomplete="current-password" minlength="6" autocapitalize="off" autocorrect="off" enterkeyhint="go">
       </label>
       <p id="auth-error" class="auth-error" role="alert" hidden></p>
       <button type="submit" id="auth-submit" class="btn btn-primary">
@@ -194,7 +201,7 @@
     <button id="new-note-btn" class="btn btn-primary">+ Nova nota</button>
     <label class="search">
       <span aria-hidden="true">🔍</span>
-      <input type="search" id="search-input" placeholder="Buscar nas notas…" aria-label="Buscar nas notas">
+      <input type="search" id="search-input" placeholder="Buscar nas notas…" aria-label="Buscar nas notas" enterkeyhint="search">
     </label>
   </div>
 
@@ -235,7 +242,7 @@
       <div class="field-row">
         <label class="field field-title-date">
           <span>Título</span>
-          <input type="text" id="note-title" lang="pt-BR" spellcheck="true" autocorrect="on" autocapitalize="sentences" placeholder="Ex.: Observações da semana" required>
+          <input type="text" id="note-title" lang="pt-BR" spellcheck="true" autocorrect="on" autocapitalize="sentences" enterkeyhint="next" placeholder="Ex.: Observações da semana" required>
         </label>
         <label class="field field-title-date">
           <span>Data</span>
