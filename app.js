@@ -344,6 +344,9 @@ logoutBtn.addEventListener("click", async () => {
 onAuthStateChanged(auth, (user) => {
   loadingScreen.hidden = true;
   currentUser = user;
+  // Avisa o painel do Paulus (paulus-grafia.js): sem login ele não abre e, ao sair, é removido.
+  window.__grafiaLogado = !!user;
+  window.dispatchEvent(new CustomEvent("grafia:auth", { detail: { logado: !!user } }));
   if (user) {
     authScreen.hidden = true;
     appScreen.hidden = false;
