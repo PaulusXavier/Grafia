@@ -1,6 +1,6 @@
 // Aumente o número a cada nova publicação: é a mudança neste arquivo que faz
 // os aparelhos detectarem e aplicarem a atualização.
-const CACHE_NAME = 'bloco-notas-shell-v19';
+const CACHE_NAME = 'bloco-notas-shell-v20';
 
 const SHELL_FILES = [
   './',
@@ -8,6 +8,9 @@ const SHELL_FILES = [
   './style.css',
   './app.js',
   './firebase-config.js',
+  './paulus.v1.js',
+  './paulus-grafia.js',
+  './conhecimento.json',
   './manifest.json',
   './icon-192.png',
   './icon-192-maskable.png',
