@@ -1,6 +1,6 @@
 // Aumente o número a cada nova publicação: é a mudança neste arquivo que faz
 // os aparelhos detectarem e aplicarem a atualização.
-const CACHE_NAME = 'grafia-shell-c4e2ac02a2';
+const CACHE_NAME = 'grafia-shell-corretor-hunspell';
 
 const SHELL_FILES = [
   './',
@@ -12,8 +12,9 @@ const SHELL_FILES = [
   './paulus-grafia.js',
   './mascote.js',
   './corretor.js',
-  './dicionario-pt.aff',
-  './dicionario-pt.dic',
+  './spell/spell-worker.js',
+  './spell/pt.aff',
+  './spell/pt.dic',
   './conhecimento.json',
   './manifest.json',
   './icon-192.png',
