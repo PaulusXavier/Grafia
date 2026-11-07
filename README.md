@@ -130,10 +130,8 @@ tem alguns ajustes pensados especificamente para toque:
 - **Detecção de teclado para Chrome, Samsung Internet e Firefox:** os navegadores
   Android divergem (alguns só encolhem a área visível, outros encolhem a
   página). `syncViewport()` trata os dois casos.
-- **Dicionário do corretor sem travar:** os ~4,4 MB do dicionário passam a ser
-  lidos em fatias (`carregarDicAsync`, em `corretor.js`), devolvendo o controle
-  à tela entre elas. Em tablets mais fracos, isso evita o travamento ao abrir
-  uma nota.
+- **Dicionário do corretor sem travar:** o Hunspell roda num Web Worker, então a
+  tela e o teclado continuam livres enquanto o dicionário carrega e confere o texto.
 - **Sem modo escuro forçado:** `color-scheme: light` (meta e CSS) para o
   navegador não inverter as cores do "papel".
 - **Avisos em tela cheia:** o aviso rápido ("Página adicionada" etc.) agora
@@ -203,26 +201,28 @@ plano Blaze no projeto.
 
 ## Corretor
 
-Dentro da nota, o botão **✓ Corretor** (ao lado da navegação de páginas) confere
-a página aberta e lista cada ponto com botões de correção: ortografia (com
-sugestões), palavra repetida, espaço duplicado, espaço antes/depois de
-pontuação, frase iniciada com minúscula e erros comuns (“afim de”, “a nível
-de”, “houveram”…). Também há **Ignorar** e **Adicionar ao dicionário** (guardado
-só neste aparelho).
+Mesmo corretor do **Verbus**: dicionário Hunspell de português do Brasil (VERO/LibreOffice)
+rodando em WebAssembly, dentro do app e offline.
 
-- **Automático:** o corretor confere sozinho ao abrir a nota, ao trocar de página
-  e quando você faz uma pausa na digitação. Se achar algo, o painel abre com as
-  correções e o botão mostra a quantidade (“✓ Corretor · 3”). Dá para desligar na
-  caixa “Verificar sozinho enquanto escrevo” do painel; o ✕ esconde o painel só
-  nesta nota.
-- **Privacidade:** tudo roda no aparelho, o texto da nota não é enviado a lugar
-  nenhum.
-- **Dicionário:** `dicionario-pt.aff` e `dicionario-pt.dic` (Hunspell, pt-BR). O
-  workflow `auto-versao.yml` baixa os dois na primeira publicação e os grava no
-  repositório (precisa do *Read and write permissions*, já pedido acima). Se
-  preferir, coloque você mesmo esses dois arquivos na raiz. Sem eles, o corretor
-  funciona só com as regras de escrita e avisa isso no painel.
-- Arquivos: `corretor.js` (motor + painel), estilos no fim de `style.css`.
+- **Sublinhado ao vivo:** palavras fora do dicionário ganham sublinhado ondulado
+  **vermelho**; erros de escrita (palavra repetida, espaço duplo, espaço antes/depois
+  de pontuação, frase com minúscula, “afim de”, “a nível de”, “houveram”…) ganham
+  sublinhado **ocre**. A palavra que você está digitando só é marcada depois que você segue em frente.
+- **Tocar na palavra marcada** (ou clicar com o botão direito no computador) abre as
+  sugestões, com **Ignorar** e **Adicionar ao dicionário** (guardado só neste aparelho).
+- **✓ Corretor** (ao lado da navegação de páginas) abre a lista completa da página, com
+  cada ponto e seus botões de correção. A caixa “Sublinhar erros enquanto escrevo” liga/desliga o sublinhado.
+- **Nomes próprios** no meio da frase (Roraima, Paulo) e **siglas** (CRAS, SUAS) não são marcados.
+  Termos do SUAS (condicionalidade, socioassistencial, PAIF…) já vêm no dicionário (`DIC_EXTRA`, em `corretor.js`).
+- **Privacidade:** tudo roda no aparelho; o texto da nota não é enviado a lugar nenhum.
+- **Arquivos:** `corretor.js` (análise, sublinhado e painel), `spell/spell-worker.js` (Hunspell em
+  WebAssembly), `spell/pt.aff` e `spell/pt.dic` (dicionário), licenças em `spell/LICENSE-*.txt`, estilos
+  no fim de `style.css`. Os arquivos `spell/` são guardados no cache do app (~5 MB) e a CSP do
+  `index.html` libera `'wasm-unsafe-eval'` e `worker-src 'self'` para isso.
+- **Reserva:** se o navegador não permitir Web Worker/WebAssembly, o corretor usa um motor
+  simples em JavaScript que lê os mesmos `spell/pt.aff` e `spell/pt.dic`.
+- Mantenha a pasta `spell/` ao publicar no GitHub (ela substitui os antigos
+  `dicionario-pt.aff/.dic`, que podem ser apagados do repositório; o workflow não baixa mais nada).
 
 ## Grafi, o mascote
 
