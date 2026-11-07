@@ -4,10 +4,12 @@
  * servidor nenhum, no mesmo espírito do Paulus, que não lê as notas).
  *
  * Duas camadas:
- *  1. Ortografia, com um dicionário Hunspell de português do Brasil
- *     (dicionario-pt.aff / dicionario-pt.dic, instalados pelo workflow do
- *     GitHub — veja .github/workflows/auto-versao.yml). Sem esses arquivos o
- *     corretor continua funcionando, só sem a parte de ortografia.
+ *  1. Ortografia, com o mesmo dicionário do Verbus: Hunspell em WebAssembly
+ *     (pasta spell/: pt.aff, pt.dic e spell-worker.js) rodando num Web Worker,
+ *     então a tela não trava. Palavras erradas ganham sublinhado ondulado na
+ *     própria caixa de texto; ao tocar nelas aparecem as sugestões. Se o
+ *     Worker não puder ser usado, entra um motor simples em JavaScript que lê
+ *     os mesmos arquivos. Sem dicionário o corretor continua com as regras.
  *  2. Regras de escrita: palavra repetida, espaços duplos, espaço antes/depois
  *     de pontuação, letra minúscula após ponto e erros comuns do português.
  *
@@ -171,9 +173,87 @@
 
     return {
       carregarAff, carregarDic, carregarDicAsync, checar, sugerir,
+      preparar() { return Promise.resolve(); },
+      adicionar() { /* o dicionário pessoal já é consultado em analisar() */ },
       get pronto() { return pronto; },
       get tamanho() { return palavras.size; }
     };
+  }
+
+  /* ------------------------------------------------------------------ *
+   * Dicionário Hunspell (WebAssembly) num Web Worker — mesmo do Verbus
+   * ------------------------------------------------------------------ */
+
+  // Termos do trabalho no SUAS/psicologia que o dicionário geral não traz.
+  const DIC_EXTRA = ("condicionalidade condicionalidades socioassistencial socioassistenciais socioeducativo " +
+    "socioeducativa socioeducativos socioeducativas intersetorial intersetoriais intersetorialidade pix emoji emojis " +
+    "podcast podcasts selfie selfies online offline smartphone smartphones wifi whatsapp instagram wi-fi app apps gov " +
+    "genograma genogramas ecomapa ecomapas déficit déficits psicoeducação matriciamento socioemocional socioemocionais " +
+    "neurodivergente neurodivergentes neurodivergência cisgênero heteroagressividade intrafamiliar intrafamiliares " +
+    "transgeracional transgeracionais contrarreferência contrarreferências referenciamento vulnerabilização " +
+    "revitimização parentalidade coparentalidade homoparental homoparentais cadúnico paif paefi suas sicon").split(" ");
+
+  const semAcento = (s) => s.normalize("NFD").replace(/\p{M}/gu, "");
+
+  function criarDicionarioWorker(extra) {
+    return new Promise((ok, no) => {
+      let w;
+      try { w = new Worker("spell/spell-worker.js", { type: "module" }); } catch (e) { return no(e); }
+      const cache = new Map(); // palavra -> { ok, sug }
+      let aguardando = null;   // resolve a conferência em andamento
+      let fila = Promise.resolve();
+      const fim = setTimeout(() => { try { w.terminate(); } catch (_) { /* ok */ } no(new Error("o dicionário demorou")); }, 60000);
+      const falha = (e) => {
+        clearTimeout(fim);
+        try { w.terminate(); } catch (_) { /* ok */ }
+        if (aguardando) { aguardando(); aguardando = null; }
+        no(e instanceof Error ? e : new Error(String(e)));
+      };
+      w.onerror = () => falha(new Error("worker"));
+      w.onmessage = (ev) => {
+        const m = ev.data;
+        if (m.t === "ready") {
+          clearTimeout(fim);
+          ok(api);
+        } else if (m.t === "fail") {
+          falha(new Error(m.e));
+        } else if (m.t === "res") {
+          m.out.forEach(([x, bom, sug]) => cache.set(x, { ok: !!bom, sug: sug || [] }));
+          if (aguardando) { aguardando(); aguardando = null; }
+        }
+      };
+      const api = {
+        pronto: true,
+        // Palavras ainda não conferidas vão ao Worker (uma conferência por vez).
+        preparar(palavras) {
+          const novas = [...new Set(palavras)].filter((x) => !cache.has(x));
+          if (!novas.length) return Promise.resolve();
+          for (let i = 0; i < novas.length; i += 400) {
+            const lote = novas.slice(i, i + 400);
+            fila = fila.then(() => new Promise((res) => {
+              aguardando = res;
+              w.postMessage({ t: "check", words: lote, sug: true });
+            }));
+          }
+          return fila;
+        },
+        checar(x) { const r = cache.get(x); return r ? r.ok : true; }, // ainda sem resposta: não acusa
+        sugerir(x, max = 4) {
+          const r = cache.get(x);
+          const alvo = semAcento(x).toLowerCase();
+          // mesma palavra com o acento corrigido (voce → você) vem primeiro
+          return ((r && r.sug) || []).slice()
+            .sort((a, b) => (semAcento(b).toLowerCase() === alvo) - (semAcento(a).toLowerCase() === alvo))
+            .slice(0, max);
+        },
+        adicionar(x) {
+          w.postMessage({ t: "add", w: x });
+          cache.set(x, { ok: true, sug: [] });
+          for (const [k, v] of cache) if (!v.ok) cache.delete(k); // refaz o que estava errado
+        }
+      };
+      w.postMessage({ t: "init", extra: extra || [] });
+    });
   }
 
   /* ------------------------------------------------------------------ *
@@ -197,6 +277,29 @@
     [/(?<![\p{L}])por isso mesmo que(?![\p{L}])/giu, "por isso mesmo, porque", "Confira se não é “porque”."]
   ];
 
+  // Palavras que valem ser conferidas no dicionário (mesmos filtros para a
+  // análise e para a lista enviada ao Worker).
+  function* palavrasParaConferir(texto, ignoradas) {
+    const re = /[\p{L}\p{M}]+(?:[-'’][\p{L}\p{M}]+)*/gu;
+    for (const m of texto.matchAll(re)) {
+      const w = m[0].replace(/’/g, "'");
+      if (w.length < 2 || ignoradas.has(w.toLocaleLowerCase(LANG))) continue;
+      const antes = texto[m.index - 1], depois = texto[m.index + m[0].length];
+      if (/\d/.test(antes || "") || /\d/.test(depois || "")) continue; // 3ª, 10h…
+      if (w === w.toLocaleUpperCase(LANG) && w.length <= 6) continue; // siglas (CRP, SUAS)
+      if (/\p{Ll}\p{Lu}/u.test(w)) continue; // iPhone, WhatsApp
+      // Nome próprio no meio da frase (Roraima, Paulo): o dicionário geral não os traz
+      if (w[0] !== w[0].toLocaleLowerCase(LANG) && !inicioDeFrase(texto, m.index)) continue;
+      yield [m, w];
+    }
+  }
+
+  function inicioDeFrase(texto, i) {
+    let k = i - 1;
+    while (k >= 0 && /[\s"“”'‘’(\[«*•\-–—]/.test(texto[k])) k--;
+    return k < 0 || /[.!?…:;\n]/.test(texto[k]) || texto.lastIndexOf("\n", i - 1) > k;
+  }
+
   function analisar(texto, dic, ignoradas) {
     const problemas = [];
     const protegidos = []; // faixas de URL/e-mail: não corrigir
@@ -208,14 +311,7 @@
 
     // 1. Ortografia
     if (dic && dic.pronto) {
-      const re = /[\p{L}\p{M}]+(?:[-'’][\p{L}\p{M}]+)*/gu;
-      for (const m of texto.matchAll(re)) {
-        const w = m[0].replace(/’/g, "'");
-        if (w.length < 2 || ignoradas.has(w.toLocaleLowerCase(LANG))) continue;
-        const antes = texto[m.index - 1], depois = texto[m.index + m[0].length];
-        if (/\d/.test(antes || "") || /\d/.test(depois || "")) continue; // 3ª, 10h…
-        if (w === w.toLocaleUpperCase(LANG) && w.length <= 6) continue; // siglas (CRP, SUAS)
-        if (/\p{Ll}\p{Lu}/u.test(w)) continue; // iPhone, WhatsApp
+      for (const [m, w] of palavrasParaConferir(texto, ignoradas)) {
         if (dic.checar(w)) continue;
         if (w.includes("-") && w.split("-").every((parte) => !parte || dic.checar(parte))) continue;
         add({
@@ -288,18 +384,20 @@
    * ------------------------------------------------------------------ */
 
   function init({ textarea, botao, painel, arquivos, indicadorPagina, modal }) {
-    const dic = criarDicionario();
-    let carregamento = null; // Promise
+    let dic = criarDicionario();      // motor simples (reserva); trocado pelo Hunspell se o Worker subir
+    let carregamento = null;          // Promise
     let dicionarioOk = false;
     const ignoradas = new Set();
     const CHAVE = "grafia-dicionario-pessoal";
     const CHAVE_AUTO = "grafia-corretor-auto";
     const ignoradasAgora = new Set(); // "Ignorar" vale só para esta nota aberta
     let automatico = true;            // verifica sozinho enquanto escreve
-    let silenciado = false;           // o usuário fechou o painel (✕) nesta nota
     let falhouEm = 0;                 // dicionário ausente: não insiste a cada pausa
     let temporizador = null;
     let ultimoTexto = null;
+    let todos = [];                   // problemas da última análise (relativos a textarea.value)
+    let textoMarcado = "";            // texto a que `todos` se refere
+    let digitando = false;            // última ação foi digitar: não sublinha a palavra em curso
     const ROTULO = "✓ Corretor";
 
     try {
@@ -310,6 +408,7 @@
     function guardarPalavra(w) {
       ignoradas.add(w.toLocaleLowerCase(LANG));
       try { localStorage.setItem(CHAVE, JSON.stringify([...ignoradas])); } catch (e) { /* ok */ }
+      if (dic.adicionar) dic.adicionar(w);
     }
 
     async function baixar(url) {
@@ -318,19 +417,34 @@
       return r;
     }
 
+    // Motor simples em JavaScript (só se o Worker/WebAssembly não funcionar).
+    async function carregarMotorSimples() {
+      const [rAff, rDic] = await Promise.all([baixar(arquivos.aff), baixar(arquivos.dic)]);
+      const bufAff = await rAff.arrayBuffer();
+      const bufDic = await rDic.arrayBuffer();
+      const cab = new TextDecoder("latin1").decode(bufAff.slice(0, 400));
+      const set = (cab.match(/^SET\s+(\S+)/m) || [])[1] || "UTF-8";
+      const dec = new TextDecoder(/utf-?8/i.test(set) ? "utf-8" : set);
+      const motor = criarDicionario();
+      motor.carregarAff(dec.decode(bufAff));
+      await motor.carregarDicAsync(dec.decode(bufDic));
+      DIC_EXTRA.forEach((w) => motor.carregarDic("1\n" + w));
+      return motor;
+    }
+
     function carregarDicionario(forcar) {
       if (!carregamento && (forcar || Date.now() - falhouEm > 60000)) {
         carregamento = (async () => {
           try {
-            const [rAff, rDic] = await Promise.all([baixar(arquivos.aff), baixar(arquivos.dic)]);
-            const bufAff = await rAff.arrayBuffer();
-            const bufDic = await rDic.arrayBuffer();
-            const cab = new TextDecoder("latin1").decode(bufAff.slice(0, 400));
-            const set = (cab.match(/^SET\s+(\S+)/m) || [])[1] || "UTF-8";
-            const dec = new TextDecoder(/utf-?8/i.test(set) ? "utf-8" : set);
-            dic.carregarAff(dec.decode(bufAff));
-            await dic.carregarDicAsync(dec.decode(bufDic));
+            const pessoais = [...ignoradas];
+            try {
+              dic = await criarDicionarioWorker(DIC_EXTRA.concat(pessoais));
+            } catch (e) {
+              console.warn("Corretor: Worker indisponível, usando o motor simples.", e);
+              dic = await carregarMotorSimples();
+            }
             dicionarioOk = dic.pronto;
+            textarea.spellcheck = !dicionarioOk; // o sublinhado do app substitui o do navegador
           } catch (e) {
             console.warn("Corretor: dicionário indisponível, só regras de escrita.", e);
             dicionarioOk = false;
@@ -349,6 +463,154 @@
       return e;
     }
 
+    /* ---------- Sublinhado ao vivo (espelho atrás/sobre a caixa de texto) ---------- */
+
+    const wrap = el("div", "corretor-wrap");
+    const espelho = el("div", "corretor-espelho");
+    espelho.setAttribute("aria-hidden", "true");
+    textarea.parentNode.insertBefore(wrap, textarea);
+    wrap.append(textarea, espelho);
+    let marcas = []; // { p, el }
+
+    const PROPS = ["fontFamily", "fontSize", "fontWeight", "fontStyle", "letterSpacing", "lineHeight",
+      "textTransform", "wordSpacing", "textIndent", "tabSize", "textAlign",
+      "paddingTop", "paddingLeft", "borderTopWidth", "borderLeftWidth", "borderBottomWidth", "borderRightWidth"];
+    function sincEstilo() {
+      const cs = getComputedStyle(textarea);
+      for (const p of PROPS) espelho.style[p] = cs[p];
+      const barra = Math.max(0, textarea.offsetWidth - textarea.clientWidth -
+        parseFloat(cs.borderLeftWidth) - parseFloat(cs.borderRightWidth));
+      espelho.style.paddingRight = (parseFloat(cs.paddingRight) + barra) + "px";
+      espelho.style.paddingBottom = cs.paddingBottom;
+      espelho.style.top = textarea.offsetTop + "px";
+      espelho.style.left = textarea.offsetLeft + "px";
+      espelho.style.width = textarea.offsetWidth + "px";
+      espelho.style.height = textarea.offsetHeight + "px";
+      espelho.scrollTop = textarea.scrollTop;
+    }
+
+    // Desloca os pontos já achados quando o texto muda, para o sublinhado
+    // acompanhar a digitação sem esperar a próxima análise.
+    function ajustar(lista, antes, depois) {
+      if (antes === depois) return lista;
+      let i = 0;
+      while (i < antes.length && i < depois.length && antes[i] === depois[i]) i++;
+      let j = 0;
+      while (j < antes.length - i && j < depois.length - i &&
+        antes[antes.length - 1 - j] === depois[depois.length - 1 - j]) j++;
+      const delta = depois.length - antes.length, fimAntes = antes.length - j;
+      return lista
+        .filter((p) => p.fim <= i || p.inicio >= fimAntes)
+        .map((p) => (p.fim <= i ? p : { ...p, inicio: p.inicio + delta, fim: p.fim + delta }));
+    }
+
+    function desenharEspelho() {
+      const v = textarea.value;
+      if (v !== textoMarcado) { todos = ajustar(todos, textoMarcado, v); textoMarcado = v; }
+      espelho.replaceChildren();
+      marcas = [];
+      if (!automatico) return;
+      const c = textarea.selectionStart, foco = document.activeElement === textarea;
+      let pos = 0;
+      for (const p of todos) {
+        if (ignoradasAgora.has(p.tipo + "|" + p.trecho)) continue;
+        if (p.tipo === "ortografia" && ignoradas.has(p.trecho.toLocaleLowerCase(LANG))) continue;
+        if (digitando && foco && p.tipo === "ortografia" && c >= p.inicio && c <= p.fim) continue;
+        if (p.inicio < pos || v.slice(p.inicio, p.fim) !== p.trecho) continue;
+        espelho.append(v.slice(pos, p.inicio));
+        const m = el("span", "corretor-marca corretor-marca-" + p.tipo, v.slice(p.inicio, p.fim));
+        espelho.append(m);
+        marcas.push({ p, el: m });
+        pos = p.fim;
+      }
+      espelho.append(v.slice(pos) + "​");
+      espelho.scrollTop = textarea.scrollTop;
+    }
+
+    /* ---------- Janelinha de sugestões ao tocar numa palavra marcada ---------- */
+
+    const pop = el("div", "corretor-pop");
+    pop.hidden = true;
+    pop.setAttribute("role", "menu");
+    wrap.append(pop);
+    // não tirar o foco da caixa (no celular, fecharia o teclado)
+    pop.addEventListener("pointerdown", (e) => e.preventDefault());
+    pop.addEventListener("mousedown", (e) => e.preventDefault());
+
+    function fecharPop() { pop.hidden = true; pop.replaceChildren(); }
+
+    function abrirPop(marca) {
+      const p = marca.p;
+      pop.replaceChildren();
+      pop.append(el("p", "corretor-pop-msg", p.tipo === "ortografia" ? "“" + p.trecho + "” — não encontrada" : p.mensagem));
+      const acoes = el("div", "corretor-acoes");
+      if (!p.sugestoes.length) acoes.append(el("span", "corretor-pop-vazio", "Sem sugestões"));
+      for (const [i, s] of p.sugestoes.entries()) {
+        const rotulo = (p.rotulos && p.rotulos[i]) || (s === "" ? "Remover" : s === " " ? "Um espaço" : s);
+        const b = el("button", "corretor-sug", rotulo);
+        b.type = "button";
+        b.addEventListener("click", () => { fecharPop(); aplicar(p, s, false); });
+        acoes.append(b);
+      }
+      const ig = el("button", "corretor-ign", "Ignorar");
+      ig.type = "button";
+      ig.addEventListener("click", () => { fecharPop(); ignoradasAgora.add(p.tipo + "|" + p.trecho); atualizarVista(); });
+      acoes.append(ig);
+      if (p.podeAdicionar) {
+        const ad = el("button", "corretor-ign", "Adicionar ao dicionário");
+        ad.type = "button";
+        ad.addEventListener("click", () => { fecharPop(); guardarPalavra(p.trecho); verificar(); });
+        acoes.append(ad);
+      }
+      pop.append(acoes);
+      pop.hidden = false;
+      // posição: logo abaixo da palavra (ou acima, se faltar espaço)
+      const w = wrap.getBoundingClientRect(), r = marca.el.getBoundingClientRect();
+      const largura = pop.offsetWidth, altura = pop.offsetHeight;
+      let x = r.left - w.left, y = r.bottom - w.top + 4;
+      x = Math.max(0, Math.min(x, w.width - largura));
+      if (y + altura > w.height && r.top - w.top - altura - 4 >= 0) y = r.top - w.top - altura - 4;
+      pop.style.left = x + "px";
+      pop.style.top = Math.max(0, y) + "px";
+    }
+
+    function marcaNoCursor() {
+      if (textarea.selectionStart !== textarea.selectionEnd) return null;
+      const c = textarea.selectionStart;
+      return marcas.find((m) => c >= m.p.inicio && c <= m.p.fim) || null;
+    }
+
+    textarea.addEventListener("pointerdown", () => { digitando = false; fecharPop(); });
+    textarea.addEventListener("click", () => {
+      digitando = false;
+      desenharEspelho();
+      const m = marcaNoCursor();
+      if (m) abrirPop(m); else fecharPop();
+    });
+    textarea.addEventListener("contextmenu", (e) => { // clique direito no computador
+      const m = marcaNoCursor();
+      if (m) { e.preventDefault(); abrirPop(m); }
+    });
+    textarea.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && !pop.hidden) { e.stopPropagation(); fecharPop(); }
+    });
+    textarea.addEventListener("scroll", () => { espelho.scrollTop = textarea.scrollTop; fecharPop(); });
+    textarea.addEventListener("blur", () => { digitando = false; setTimeout(() => { fecharPop(); desenharEspelho(); }, 150); });
+    let quadro = 0;
+    document.addEventListener("selectionchange", () => {
+      if (document.activeElement !== textarea || quadro) return;
+      quadro = requestAnimationFrame(() => { quadro = 0; desenharEspelho(); });
+    });
+    if (window.ResizeObserver) {
+      const ro = new ResizeObserver(() => { sincEstilo(); });
+      ro.observe(textarea);
+      ro.observe(wrap);
+    }
+    window.addEventListener("resize", sincEstilo);
+    sincEstilo();
+
+    /* ---------- Painel de revisão (botão ✓ Corretor) ---------- */
+
     function fechar() {
       painel.hidden = true;
       painel.replaceChildren();
@@ -363,18 +625,42 @@
         : "Corretor");
     }
 
-    function analisarAgora() {
-      const todos = analisar(textarea.value, dicionarioOk ? dic : null, ignoradas);
-      return todos.filter((p) => !ignoradasAgora.has(p.tipo + "|" + p.trecho));
+    function visiveis() {
+      return todos.filter((p) =>
+        !ignoradasAgora.has(p.tipo + "|" + p.trecho) &&
+        !(p.tipo === "ortografia" && ignoradas.has(p.trecho.toLocaleLowerCase(LANG))));
     }
 
-    function aplicar(p, substituto) {
+    // Confere o texto atual (com o dicionário) e devolve o que há a revisar.
+    async function analisarAgora(forcarDic) {
+      await carregarDicionario(!!forcarDic);
+      const texto = textarea.value;
+      if (dicionarioOk) {
+        const lista = [];
+        for (const [, w] of palavrasParaConferir(texto, ignoradas)) lista.push(w);
+        await dic.preparar(lista);
+      }
+      const achados = analisar(texto, dicionarioOk ? dic : null, ignoradas);
+      return { texto, achados };
+    }
+
+    // Atualiza sublinhado, contador e (se aberto) o painel, a partir de `todos`.
+    function atualizarVista() {
+      const lista = visiveis();
+      marcarBotao(lista.length);
+      desenharEspelho();
+      if (!painel.hidden) desenhar(lista);
+    }
+
+    function aplicar(p, substituto, abrirPainel = true) {
       const v = textarea.value;
       // o texto pode ter mudado desde a análise: confere antes de trocar
-      if (v.slice(p.inicio, p.fim) !== p.trecho) return rodar();
+      if (v.slice(p.inicio, p.fim) !== p.trecho) return abrirPainel ? rodar() : verificar();
       textarea.value = v.slice(0, p.inicio) + substituto + v.slice(p.fim);
+      const cursor = p.inicio + substituto.length;
+      try { textarea.setSelectionRange(cursor, cursor); } catch (e) { /* ok */ }
       textarea.dispatchEvent(new Event("input", { bubbles: true })); // o app guarda a página
-      rodar();
+      return abrirPainel ? rodar() : verificar();
     }
 
     function contexto(p) {
@@ -399,7 +685,7 @@
       const x = el("button", "corretor-fechar", "✕");
       x.type = "button";
       x.setAttribute("aria-label", "Fechar corretor");
-      x.addEventListener("click", () => { silenciado = true; fechar(); });
+      x.addEventListener("click", () => fechar());
       topo.append(x);
       painel.append(topo);
 
@@ -410,15 +696,16 @@
       cx.addEventListener("change", () => {
         automatico = cx.checked;
         try { localStorage.setItem(CHAVE_AUTO, automatico ? "1" : "0"); } catch (e) { /* ok */ }
-        if (automatico) { silenciado = false; verificar(); }
-        else { clearTimeout(temporizador); }
+        if (automatico) { verificar(); }
+        else { clearTimeout(temporizador); desenharEspelho(); if (dicionarioOk) textarea.spellcheck = true; }
+        if (automatico && dicionarioOk) textarea.spellcheck = false;
       });
-      auto.append(cx, " Verificar sozinho enquanto escrevo");
+      auto.append(cx, " Sublinhar erros enquanto escrevo");
       painel.append(auto);
 
       if (!dicionarioOk) {
         painel.append(el("p", "corretor-aviso",
-          "Dicionário de ortografia ainda não instalado neste aparelho — verificando só pontuação, espaços e erros comuns."));
+          "Dicionário de ortografia ainda não carregado neste aparelho — verificando só pontuação, espaços e erros comuns."));
       } else if (!nOrt && !problemas.length) {
         painel.append(el("p", "corretor-aviso", "Ortografia, pontuação e espaços conferidos."));
       }
@@ -439,13 +726,13 @@
         ig.type = "button";
         ig.addEventListener("click", () => {
           ignoradasAgora.add(p.tipo + "|" + p.trecho);
-          rodar();
+          atualizarVista();
         });
         acoes.append(ig);
         if (p.podeAdicionar) {
           const ad = el("button", "corretor-ign", "Adicionar ao dicionário");
           ad.type = "button";
-          ad.addEventListener("click", () => { guardarPalavra(p.trecho); rodar(); });
+          ad.addEventListener("click", () => { guardarPalavra(p.trecho); verificar(); });
           acoes.append(ad);
         }
         li.append(acoes);
@@ -460,32 +747,30 @@
     // Botão: sempre mostra o painel, mesmo sem problemas.
     async function rodar() {
       painel.hidden = false;
-      silenciado = false;
       botao.setAttribute("aria-expanded", "true");
-      if (!dic.pronto && !carregamento) {
+      if (!dicionarioOk && !carregamento) {
         painel.replaceChildren(el("p", "corretor-aviso", "Carregando dicionário…"));
       }
-      await carregarDicionario(true);
-      const problemas = analisarAgora();
-      marcarBotao(problemas.length);
-      desenhar(problemas);
+      const { texto, achados } = await analisarAgora(true);
+      if (textarea.value !== texto) return rodar(); // mudou enquanto conferia
+      todos = achados; textoMarcado = texto; ultimoTexto = texto;
+      atualizarVista();
+      if (painel.hidden) return;
+      desenhar(visiveis());
     }
 
-    // Automático: confere sozinho e só abre o painel se houver algo a revisar.
+    // Automático: confere sozinho, sublinha e atualiza o contador. O painel só
+    // abre pelo botão (ou se já estiver aberto, é atualizado).
     async function verificar() {
-      if (!automatico || (modal && modal.hidden)) return;
-      const texto = textarea.value;
-      if (!texto.trim()) { ultimoTexto = texto; marcarBotao(0); fechar(); return; }
-      await carregarDicionario(false);
+      if (modal && modal.hidden) return;
+      const texto0 = textarea.value;
+      if (!texto0.trim()) { ultimoTexto = texto0; todos = []; textoMarcado = texto0; atualizarVista(); if (!painel.hidden) fechar(); return; }
+      if (!automatico && painel.hidden) return;
+      const { texto, achados } = await analisarAgora(false);
       if (textarea.value !== texto) return; // continuou digitando: a próxima pausa confere
       ultimoTexto = texto;
-      const problemas = analisarAgora();
-      marcarBotao(problemas.length);
-      if (!problemas.length) { fechar(); return; }
-      if (silenciado) return;
-      painel.hidden = false;
-      botao.setAttribute("aria-expanded", "true");
-      desenhar(problemas);
+      todos = achados; textoMarcado = texto;
+      atualizarVista();
     }
 
     function agendar(ms) {
@@ -495,21 +780,27 @@
     }
 
     textarea.addEventListener("input", () => {
-      if (textarea.value !== ultimoTexto) agendar(900); // espera uma pausa na digitação
+      digitando = true;
+      fecharPop();
+      desenharEspelho(); // sublinhado acompanha a digitação na hora
+      if (textarea.value !== ultimoTexto) agendar(500); // espera uma pausa na digitação
     });
 
     botao.addEventListener("click", () => { painel.hidden ? rodar() : fechar(); });
 
-    // Ao trocar de página ou abrir/fechar a nota, o painel (que mostra o texto
-    // antigo) deixa de valer; se a nota está aberta, confere de novo sozinho.
+    // Ao trocar de página ou abrir/fechar a nota, a análise antiga deixa de
+    // valer; se a nota está aberta, confere de novo sozinho.
     function reiniciar() {
       clearTimeout(temporizador);
-      silenciado = false;
       ultimoTexto = null;
       ignoradasAgora.clear();
+      todos = []; textoMarcado = textarea.value;
+      fecharPop();
       fechar();
       marcarBotao(0);
-      if (!modal || !modal.hidden) agendar(500);
+      sincEstilo();
+      desenharEspelho();
+      if (!modal || !modal.hidden) agendar(300);
     }
     if (indicadorPagina) {
       new MutationObserver(reiniciar).observe(indicadorPagina, { childList: true, characterData: true, subtree: true });
@@ -517,11 +808,13 @@
     if (modal) {
       new MutationObserver(reiniciar).observe(modal, { attributes: true, attributeFilter: ["hidden"] });
     }
+    // Começa a baixar o dicionário já na primeira abertura do app.
+    setTimeout(() => carregarDicionario(false), 1500);
 
     return { rodar, verificar, fechar };
   }
 
-  const api = { criarDicionario, analisar, init };
+  const api = { criarDicionario, criarDicionarioWorker, analisar, palavrasParaConferir, init };
   if (typeof module !== "undefined" && module.exports) { module.exports = api; return; }
   root.Corretor = api;
 
@@ -533,7 +826,7 @@
     if (!textarea || !botao || !painel) return;
     init({
       textarea, botao, painel,
-      arquivos: { aff: "dicionario-pt.aff", dic: "dicionario-pt.dic" },
+      arquivos: { aff: "spell/pt.aff", dic: "spell/pt.dic" },
       indicadorPagina: document.getElementById("page-indicator"),
       modal: document.getElementById("note-modal")
     });
