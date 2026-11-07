@@ -66,6 +66,7 @@ service-worker.js        → cache do app para funcionar offline
 firestore.rules          → regras de segurança do banco de dados
 icon-192.png, icon-192-maskable.png,
 icon-512.png, icon-512-maskable.png → ícones do app
+login.js                 → detalhes da tela de entrada (olho da senha, Caps Lock, força)
 ```
 
 ## Celular e tablet
@@ -223,6 +224,20 @@ rodando em WebAssembly, dentro do app e offline.
   simples em JavaScript que lê os mesmos `spell/pt.aff` e `spell/pt.dic`.
 - Mantenha a pasta `spell/` ao publicar no GitHub (ela substitui os antigos
   `dicionario-pt.aff/.dic`, que podem ser apagados do repositório; o workflow não baixa mais nada).
+
+## Tela de entrada
+
+- **Computador e tablet deitado:** apresentação (mascote, marca e três vantagens) à esquerda e o cartão
+  de login à direita. **Celular:** tudo em uma coluna; deitado, também em duas colunas.
+- **Abas Entrar / Criar acesso** (no lugar do link de alternar). Em *Criar acesso* aparecem o campo
+  **Repita a senha** e o **medidor de força** (mínimo de 8 caracteres, como antes).
+- **Olho** para mostrar/ocultar a senha, aviso de **Caps Lock**, ícones nos campos e mensagens de erro
+  junto do campo com problema (e-mail inválido, senha vazia, senhas diferentes).
+- **O Grafi acompanha:** ouve quando você digita o e-mail, **fecha os olhos** na senha (abre se você
+  mostrar a senha), fica em dúvida quando o login falha e comemora ao entrar.
+- Em computador o cursor já vem no e-mail; em celular/tablet não, para o teclado não cobrir a tela.
+- Arquivos: `index.html` (estrutura), `login.js` (olho, Caps Lock, força, mascote), `app.js`
+  (`setAuthMode`, validações) e o bloco “Tela de login” de `style.css`.
 
 ## Grafi, o mascote
 
