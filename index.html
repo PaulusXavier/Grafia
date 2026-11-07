@@ -149,32 +149,95 @@
 </template>
 
 <!-- TELA DE ENTRADA -->
-<div id="auth-screen" class="screen" hidden>
-  <div class="auth-card pad-sheet">
-    <div class="spiral" aria-hidden="true"></div>
-    <div id="mascot-slot" class="mascot-slot"></div>
-    <h1 class="brand">Grafia</h1>
-    <p class="tagline">Seu bloco de notas</p>
-    <p class="credential">Paulo Xavier, CRP-20/09816</p>
+<div id="auth-screen" class="screen" data-modo="entrar" hidden>
+  <div class="auth-bg" aria-hidden="true"><span class="auth-blob auth-blob-1"></span><span class="auth-blob auth-blob-2"></span><span class="auth-blob auth-blob-3"></span></div>
+  <div class="auth-shell">
 
-    <form id="auth-form" class="auth-form">
-      <label class="field">
-        <span>E-mail</span>
-        <input type="email" id="auth-email" required autocomplete="email" enterkeyhint="next">
-      </label>
-      <label class="field">
-        <span>Senha</span>
-        <input type="password" id="auth-password" required autocomplete="current-password" minlength="6" autocapitalize="off" autocorrect="off" enterkeyhint="go">
-      </label>
-      <p id="auth-error" class="auth-error" role="alert" hidden></p>
-      <button type="submit" id="auth-submit" class="btn btn-primary">
-        <span class="btn-label">Entrar</span>
-        <span class="btn-spinner" hidden aria-hidden="true"></span>
-      </button>
-      <button type="button" id="auth-toggle" class="btn-link">Ainda não tenho conta — criar acesso</button>
-      <button type="button" id="auth-reset" class="btn-link">Esqueci minha senha</button>
-    </form>
-    <p class="auth-hint">O mesmo e-mail e senha abrem suas notas em qualquer aparelho.</p>
+    <section class="auth-hero">
+      <div id="mascot-slot" class="mascot-slot"></div>
+      <h1 class="brand">Grafia</h1>
+      <p class="tagline">Seu bloco de notas</p>
+      <p class="credential">Paulo Xavier, CRP-20/09816</p>
+      <ul class="auth-features">
+        <li>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 18a4.5 4.5 0 0 1-.6-8.96A6 6 0 0 1 18 8.5a4 4 0 0 1-.5 7.97"/><path d="m9 15 3-3 3 3M12 12v8"/></svg>
+          <span><strong>Sincroniza sozinho</strong>As mesmas notas no celular, no tablet e no computador.</span>
+        </li>
+        <li>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 8.8a15 15 0 0 1 20 0M5 12.5a10 10 0 0 1 14 0M8.5 16a5 5 0 0 1 7 0"/><path d="M12 19.5h.01"/><path d="m3 3 18 18"/></svg>
+          <span><strong>Funciona sem internet</strong>Escreva à vontade: o que ficou pendente sobe quando a conexão volta.</span>
+        </li>
+        <li>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
+          <span><strong>Só você vê suas notas</strong>Cada conta enxerga apenas as próprias anotações.</span>
+        </li>
+      </ul>
+    </section>
+
+    <div class="auth-card pad-sheet">
+      <div class="spiral" aria-hidden="true"></div>
+
+      <div class="auth-tabs" role="tablist" aria-label="Entrar ou criar acesso">
+        <span class="auth-tab-pill" aria-hidden="true"></span>
+        <button type="button" role="tab" id="auth-tab-entrar" class="auth-tab" aria-selected="true" aria-controls="auth-form">Entrar</button>
+        <button type="button" role="tab" id="auth-tab-cadastro" class="auth-tab" aria-selected="false" aria-controls="auth-form" tabindex="-1">Criar acesso</button>
+      </div>
+
+      <div class="auth-welcome" aria-live="polite">
+        <h2 id="auth-title">Bem-vindo de volta</h2>
+        <p id="auth-subtitle">Entre para abrir suas notas.</p>
+      </div>
+
+      <form id="auth-form" class="auth-form" novalidate>
+        <div class="field">
+          <label for="auth-email">E-mail</label>
+          <div class="input-wrap">
+            <svg class="input-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="m3.5 7 8.5 6 8.5-6"/></svg>
+            <input type="email" id="auth-email" required autocomplete="email" inputmode="email" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="next" placeholder="voce@exemplo.com">
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="auth-password">Senha</label>
+          <div class="input-wrap">
+            <svg class="input-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
+            <input type="password" id="auth-password" required autocomplete="current-password" minlength="6" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="go" placeholder="Sua senha" aria-describedby="auth-caps auth-forca">
+            <button type="button" id="auth-olho" class="input-olho" aria-label="Mostrar senha" aria-pressed="false" title="Mostrar senha">
+              <svg class="olho-aberto" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg>
+              <svg class="olho-fechado" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3l18 18M10.6 6a9.8 9.8 0 0 1 1.4-.1c6.4 0 10 6.1 10 6.1a17 17 0 0 1-3.3 4M6.7 6.7C3.8 8.5 2 12 2 12s3.6 6.5 10 6.5a9.6 9.6 0 0 0 4.1-.9M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg>
+            </button>
+          </div>
+          <p id="auth-caps" class="auth-caps" role="status" hidden>⇪ Caps Lock está ligado</p>
+          <div id="auth-forca" class="auth-forca" aria-live="polite">
+            <div class="forca-barra" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+            <p class="forca-texto">Use 8 ou mais caracteres.</p>
+          </div>
+        </div>
+
+        <div class="field campo-cadastro">
+          <label for="auth-password2">Repita a senha</label>
+          <div class="input-wrap">
+            <svg class="input-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>
+            <input type="password" id="auth-password2" autocomplete="new-password" minlength="8" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="go" placeholder="Digite a senha de novo">
+          </div>
+        </div>
+
+        <p id="auth-error" class="auth-error" role="alert" hidden></p>
+
+        <button type="submit" id="auth-submit" class="btn btn-primary btn-entrar">
+          <span class="btn-label">Entrar</span>
+          <svg class="btn-seta" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          <span class="btn-spinner" hidden aria-hidden="true"></span>
+        </button>
+
+        <div class="auth-links">
+          <button type="button" id="auth-reset" class="btn-link">Esqueci minha senha</button>
+        </div>
+      </form>
+
+      <p class="auth-hint">O mesmo e-mail e senha abrem suas notas em qualquer aparelho.</p>
+    </div>
+
   </div>
 </div>
 
@@ -301,6 +364,7 @@
 <script src="paulus-grafia.js"></script>
 <script src="mascote.js"></script>
 <script src="corretor.js"></script>
+<script src="login.js"></script>
 <script type="module" src="app.js"></script>
 </body>
 </html>
