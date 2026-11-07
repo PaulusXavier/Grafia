@@ -46,7 +46,10 @@ const authEmail    = document.getElementById("auth-email");
 const authPassword = document.getElementById("auth-password");
 const authError    = document.getElementById("auth-error");
 const authSubmit   = document.getElementById("auth-submit");
-const authToggle   = document.getElementById("auth-toggle");
+const authPassword2 = document.getElementById("auth-password2");
+const authTitle    = document.getElementById("auth-title");
+const authSubtitle = document.getElementById("auth-subtitle");
+const authTabs     = [document.getElementById("auth-tab-entrar"), document.getElementById("auth-tab-cadastro")];
 const logoutBtn    = document.getElementById("logout-btn");
 const syncPill     = document.getElementById("sync-pill");
 const syncStatus   = document.getElementById("sync-status");
@@ -231,54 +234,99 @@ window.addEventListener("offline", () => {
 updateOfflineBanner();
 
 /* ---------- Autenticação ---------- */
-authToggle.addEventListener("click", () => {
-  isSignUpMode = !isSignUpMode;
+// Alterna entre "Entrar" e "Criar acesso". O visual (abas, campo de repetir a
+// senha, medidor de força) segue o atributo data-modo da tela, via CSS; o
+// login.js cuida só dos detalhes de interface (olho da senha, Caps Lock etc.).
+function setAuthMode(signup) {
+  isSignUpMode = !!signup;
+  authScreen.dataset.modo = isSignUpMode ? "cadastro" : "entrar";
   authSubmit.querySelector(".btn-label").textContent = isSignUpMode ? "Criar conta" : "Entrar";
-  authToggle.textContent = isSignUpMode
-    ? "Já tenho conta — entrar"
-    : "Ainda não tenho conta — criar acesso";
+  authTitle.textContent = isSignUpMode ? "Criar seu acesso" : "Bem-vindo de volta";
+  authSubtitle.textContent = isSignUpMode
+    ? "Uma conta só, e suas notas acompanham você em qualquer aparelho."
+    : "Entre para abrir suas notas.";
   authPassword.autocomplete = isSignUpMode ? "new-password" : "current-password";
+  authPassword.placeholder = isSignUpMode ? "Pelo menos 8 caracteres" : "Sua senha";
   // Só exige 8+ caracteres para contas NOVAS — contas antigas com senha de
   // 6 caracteres continuam entrando normalmente.
   authPassword.minLength = isSignUpMode ? 8 : 6;
-  authError.hidden = true;
-});
+  authPassword2.required = isSignUpMode;
+  authPassword2.value = "";
+  authTabs.forEach((t, i) => {
+    const ativa = (i === 1) === isSignUpMode;
+    t.setAttribute("aria-selected", String(ativa));
+    t.tabIndex = ativa ? 0 : -1;
+  });
+  showAuthError("");
+  window.dispatchEvent(new CustomEvent("grafia:authmodo", { detail: { cadastro: isSignUpMode } }));
+}
+authTabs.forEach((t, i) => t.addEventListener("click", () => setAuthMode(i === 1)));
+authTabs.forEach((t, i) => t.addEventListener("keydown", (e) => {
+  if (e.key === "ArrowRight" || e.key === "ArrowLeft") { e.preventDefault(); setAuthMode(i === 0); authTabs[i === 0 ? 1 : 0].focus(); }
+}));
+
+// Mostra (ou limpa) o aviso de erro da tela de entrada, marcando o campo.
+function showAuthError(msg, campo) {
+  authError.textContent = msg || "";
+  authError.hidden = !msg;
+  [authEmail, authPassword, authPassword2].forEach((c) => c.removeAttribute("aria-invalid"));
+  if (msg) {
+    if (campo) campo.setAttribute("aria-invalid", "true");
+    authError.classList.remove("tremer");
+    void authError.offsetWidth;
+    authError.classList.add("tremer");
+  }
+}
 
 document.getElementById("auth-reset").addEventListener("click", async () => {
   const email = authEmail.value.trim();
   if (!email) {
-    authError.textContent = "Digite seu e-mail acima e toque de novo em “Esqueci minha senha”.";
-    authError.hidden = false;
+    showAuthError("Digite seu e-mail acima e toque de novo em “Esqueci minha senha”.", authEmail);
     authEmail.focus();
     return;
   }
   try {
     await sendPasswordResetEmail(auth, email);
-    authError.hidden = true;
+    showAuthError("");
     showToast("Se o e-mail tiver conta, enviamos um link para redefinir a senha");
   } catch (err) {
     console.error(err);
-    authError.textContent = friendlyAuthError(err.code, "reset");
-    authError.hidden = false;
+    showAuthError(friendlyAuthError(err.code, "reset"), authEmail);
+    mascotEvent("erro");
   }
 });
 
 authForm.addEventListener("submit", async (e) => {
   e.preventDefault();
-  authError.hidden = true;
-
-  if (!navigator.onLine) {
-    authError.textContent = "Sem conexão. Conecte-se à internet para entrar ou criar sua conta.";
-    authError.hidden = false;
-    return;
-  }
+  showAuthError("");
 
   const email = authEmail.value.trim();
   const password = authPassword.value;
 
+  if (!email || !authEmail.validity.valid) {
+    showAuthError("Digite um e-mail válido, como nome@exemplo.com.", authEmail);
+    authEmail.focus();
+    return;
+  }
+  if (!password) {
+    showAuthError("Digite sua senha.", authPassword);
+    authPassword.focus();
+    return;
+  }
+
+  if (!navigator.onLine) {
+    showAuthError("Sem conexão. Conecte-se à internet para entrar ou criar sua conta.");
+    return;
+  }
+
   if (isSignUpMode && password.length < 8) {
-    authError.textContent = "A senha precisa ter pelo menos 8 caracteres.";
-    authError.hidden = false;
+    showAuthError("A senha precisa ter pelo menos 8 caracteres.", authPassword);
+    authPassword.focus();
+    return;
+  }
+  if (isSignUpMode && password !== authPassword2.value) {
+    showAuthError("As duas senhas não são iguais. Confira e tente de novo.", authPassword2);
+    authPassword2.focus();
     return;
   }
 
@@ -293,8 +341,8 @@ authForm.addEventListener("submit", async (e) => {
     }
   } catch (err) {
     console.error(err);
-    authError.textContent = friendlyAuthError(err.code);
-    authError.hidden = false;
+    showAuthError(friendlyAuthError(err.code));
+    mascotEvent("erro");
   } finally {
     setButtonBusy(authSubmit, false);
   }
@@ -410,6 +458,7 @@ onAuthStateChanged(auth, (user) => {
     authScreen.hidden = true;
     appScreen.hidden = false;
     authForm.reset();
+    setAuthMode(false);
     listenToNotes(user.uid);
     runPendingLaunch();
   } else {
