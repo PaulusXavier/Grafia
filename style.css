@@ -1337,6 +1337,30 @@ input:focus, textarea:focus {
 @media (pointer: coarse) { .corretor-sug, .corretor-ign { padding: 9px 14px; } }
 @media print { .corretor-panel, .btn-corretor { display: none !important; } }
 
+/* Sublinhado ao vivo do Corretor: um "espelho" com o mesmo texto fica por cima da
+   caixa (transparente, sem capturar toque) e desenha só o sublinhado ondulado. */
+.corretor-wrap { position: relative; display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; }
+.corretor-wrap > textarea { flex: 1 1 auto; width: 100%; }
+.corretor-espelho {
+  position: absolute; z-index: 1; pointer-events: none; overflow: hidden;
+  white-space: pre-wrap; overflow-wrap: break-word; word-wrap: break-word;
+  color: transparent; border-style: solid; border-color: transparent; box-sizing: border-box;
+}
+.field .corretor-espelho .corretor-marca { color: transparent; font-weight: inherit; text-decoration-line: underline; text-decoration-style: wavy;
+  text-decoration-thickness: 1.5px; text-underline-offset: 3px; text-decoration-skip-ink: none; }
+.field .corretor-espelho .corretor-marca-ortografia { text-decoration-color: var(--danger); }
+.field .corretor-espelho .corretor-marca-escrita { text-decoration-color: var(--ochre); }
+.corretor-pop {
+  position: absolute; z-index: 5; max-width: min(320px, 100%);
+  background: var(--paper); border: 1px solid var(--rule); border-radius: 10px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.18); padding: 8px 10px; font-size: 0.9rem;
+}
+.corretor-pop[hidden] { display: none; }
+.corretor-pop-msg { margin: 0 0 6px; color: var(--ink-soft); font-size: 0.8rem; overflow-wrap: anywhere; }
+.corretor-pop-vazio { color: var(--ink-soft); font-size: 0.82rem; align-self: center; }
+@media print { .corretor-espelho, .corretor-pop { display: none !important; } }
+
+
 /* =====================================================================
    TABLET (iPad, Android) — toque, teclado virtual e telas grandes
    Tudo aqui é aditivo: o computador e o celular em pé ficam como estavam.
