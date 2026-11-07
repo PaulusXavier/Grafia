@@ -1,6 +1,6 @@
 // Aumente o número a cada nova publicação: é a mudança neste arquivo que faz
 // os aparelhos detectarem e aplicarem a atualização.
-const CACHE_NAME = 'grafia-shell-corretor-hunspell';
+const CACHE_NAME = 'grafia-shell-c4e2ac02a2';
 
 const SHELL_FILES = [
   './',
