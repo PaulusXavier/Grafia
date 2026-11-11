@@ -1,11 +1,12 @@
 // Aumente o número a cada nova publicação: é a mudança neste arquivo que faz
 // os aparelhos detectarem e aplicarem a atualização.
-const CACHE_NAME = 'grafia-shell-f6999b5372';
+const CACHE_NAME = 'grafia-shell-tema-v3';
 
 const SHELL_FILES = [
   './',
   './index.html',
   './style.css',
+  './tema.css',
   './app.js',
   './firebase-config.js',
   './paulus.v1.js',
@@ -13,6 +14,7 @@ const SHELL_FILES = [
   './mascote.js',
   './corretor.js',
   './login.js',
+  './produtividade.js',
   './spell/spell-worker.js',
   './spell/pt.aff',
   './spell/pt.dic',
