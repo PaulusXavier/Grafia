@@ -4,10 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Grafia · Bloco de Notas</title>
-<meta name="theme-color" content="#5C7A6B">
+<meta name="theme-color" content="#2F4A3E">
 <!-- O visual é de papel claro: avisa o navegador para não aplicar "modo escuro
      forçado" (Chrome e Samsung Internet no Android podem inverter as cores). -->
-<meta name="color-scheme" content="light">
+<meta name="color-scheme" content="light dark">
 <meta name="robots" content="noindex, nofollow">
 <!-- Camada extra de defesa: mesmo que algum dia um bug permita injetar HTML,
      o navegador só executa scripts vindos deste site e do SDK do Firebase, e
@@ -34,6 +34,7 @@
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="tema.css">
 </head>
 <body>
 
@@ -262,11 +263,20 @@
   </header>
 
   <div class="toolbar">
-    <button id="new-note-btn" class="btn btn-primary">+ Nova nota</button>
+    <button id="new-note-btn" class="btn btn-primary" aria-keyshortcuts="N">+ Nova nota<span class="btn-atalho" aria-hidden="true">N</span></button>
     <label class="search">
       <span aria-hidden="true">🔍</span>
-      <input type="search" id="search-input" placeholder="Buscar nas notas…" aria-label="Buscar nas notas" enterkeyhint="search">
+      <input type="search" id="search-input" aria-keyshortcuts="/ Control+K" placeholder="Buscar por título ou texto…" aria-label="Buscar nas notas" enterkeyhint="search">
     </label>
+  </div>
+
+  <div id="filtros" class="filtros" role="group" aria-label="Filtrar notas" hidden>
+    <button type="button" class="filtro" data-filtro="todas" aria-pressed="true">Todas</button>
+    <button type="button" class="filtro" data-filtro="hoje" aria-pressed="false">Hoje</button>
+    <button type="button" class="filtro" data-filtro="anexos" aria-pressed="false">Com anexos</button>
+    <button type="button" class="filtro" data-filtro="paginas" aria-pressed="false">Várias páginas</button>
+    <span id="contador-notas" class="contador-notas" aria-live="polite"></span>
+    <button type="button" id="densidade" class="filtro filtro-densidade" aria-pressed="false" title="Lista compacta">☰ Compacta</button>
   </div>
 
   <main id="notes-list" class="notes-list" aria-live="polite">
@@ -285,6 +295,7 @@
     </svg>
     <h2>Nenhuma nota ainda</h2>
     <p>Toque em "Nova nota" para começar seu registro.</p>
+    <button type="button" id="empty-cta" class="btn btn-primary">Criar primeira nota</button>
   </div>
 </div>
 
@@ -318,6 +329,12 @@
           <span>Conteúdo</span>
           <span id="page-indicator" class="page-indicator">Página 1 de 1</span>
         </div>
+        <div class="modelos" role="group" aria-label="Inserir modelo no texto">
+          <button type="button" class="modelo" data-modelo="agora">🕒 Data e hora</button>
+          <button type="button" class="modelo" data-modelo="atendimento">Atendimento</button>
+          <button type="button" class="modelo" data-modelo="reuniao">Reunião</button>
+          <button type="button" class="modelo" data-modelo="tarefas">☐ Tarefas</button>
+        </div>
         <textarea id="note-content" rows="8" lang="pt-BR" spellcheck="true" autocorrect="on" autocapitalize="sentences" placeholder="Escreva aqui sua anotação…"></textarea>
         <div class="page-nav">
           <button type="button" id="page-prev-btn" class="btn-page">◀ Anterior</button>
@@ -338,6 +355,7 @@
       </div>
       <p id="note-form-error" class="auth-error" role="alert" hidden></p>
       <div class="modal-actions">
+        <span id="editor-info" class="editor-info" aria-live="off"></span>
         <button type="button" id="print-note-btn" class="btn btn-secondary" hidden>🖨️ Imprimir</button>
         <button type="button" id="delete-note-btn" class="btn btn-danger" hidden>Excluir</button>
         <button type="submit" id="note-save-btn" class="btn btn-primary">
@@ -365,6 +383,7 @@
 <script src="mascote.js"></script>
 <script src="corretor.js"></script>
 <script src="login.js"></script>
+<script src="produtividade.js"></script>
 <script type="module" src="app.js"></script>
 </body>
 </html>
