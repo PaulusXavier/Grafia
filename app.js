@@ -558,6 +558,9 @@ function renderNotes() {
       card.style.animationDelay = `${Math.min(newCardIndex, 8) * 30}ms`;
       newCardIndex += 1;
     }
+    card.dataset.data = note.date || "";
+    card.dataset.anexos = Array.isArray(note.attachments) && note.attachments.length > 0 ? "1" : "0";
+    card.dataset.paginas = pageCount > 1 ? "1" : "0";
     const dotsEl = document.createElement("div");
     dotsEl.className = "note-card-dots";
     dotsEl.setAttribute("aria-hidden", "true");
