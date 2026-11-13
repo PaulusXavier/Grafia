@@ -1,6 +1,6 @@
 // Aumente o número a cada nova publicação: é a mudança neste arquivo que faz
 // os aparelhos detectarem e aplicarem a atualização.
-const CACHE_NAME = 'grafia-shell-tema-v4';
+const CACHE_NAME = 'grafia-shell-42b8aff15e';
 
 const SHELL_FILES = [
   './',
