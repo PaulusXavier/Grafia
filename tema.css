@@ -192,3 +192,46 @@ body.compacto .note-card-preview { grid-column: 2; -webkit-line-clamp: 1; line-c
 @media print {
   :root { color-scheme: light; --paper: #FFFDF7; --rule: #E4DFCF; --sage: #5C7A6B; --ochre: #C98A3B; --ink-soft: #66624F; --sage-dark: #2F4A3E; }
 }
+
+/* ================= RELÓGIO (relogio.js) ================= */
+/* Mostrador em verde-sálvia escuro com ocre; dia, mês e dia da semana ganham cor própria. */
+.ar-relogio {
+  --ar-dia: #F0B45A; --ar-mes: #8FD6B0; --ar-sem: #F4A08A; --ar-ouro: #E8C9A0;
+  --ar-texto: #C3D6CB; --ar-mao: #FFFDF7;
+  display: block; min-width: 0; max-width: 100%;
+}
+.ar-relogio svg { display: block; width: 100%; height: auto; max-width: 100%; }
+.ar-fundo { fill: #243B31; stroke: rgba(232, 201, 160, 0.55); stroke-width: 1.5; }
+.ar-trilha { fill: none; stroke: #2F4A3E; stroke-width: 26; }
+.ar-borda { fill: none; stroke: rgba(232, 201, 160, 0.25); stroke-width: 1; }
+.ar-face { fill: #1B2D25; stroke: rgba(232, 201, 160, 0.3); stroke-width: 1; }
+.ar-anel { transform-origin: 200px 200px; transition: transform 1.2s cubic-bezier(0.3, 0.8, 0.2, 1); }
+.ar-parado .ar-anel { transition: none; }
+.ar-anel text { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; font-size: 11px; font-weight: 600; fill: var(--ar-texto); letter-spacing: 0.12em; }
+.ar-anel-dia text { font-size: 12px; letter-spacing: 0; }
+.ar-anel text.ar-atual { font-weight: 800; }
+.ar-anel-dia text.ar-atual { fill: var(--ar-dia); }
+.ar-anel-mes text.ar-atual { fill: var(--ar-mes); }
+.ar-anel-sem text.ar-atual { fill: var(--ar-sem); }
+.ar-marca { stroke: var(--ar-texto); stroke-width: 1.4; stroke-linecap: round; opacity: 0.55; }
+.ar-marca.ar-forte { stroke: var(--ar-ouro); stroke-width: 2.4; opacity: 1; }
+.ar-num { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; font-size: 14px; font-weight: 600; fill: var(--ar-texto); }
+.ar-num.ar-forte { font-size: 17px; font-weight: 700; fill: var(--ar-mao); }
+.ar-mao { stroke: var(--ar-mao); stroke-linecap: round; fill: none; }
+.ar-mao-hora { stroke-width: 7; }
+.ar-mao-min { stroke-width: 5; }
+.ar-mao-seg { stroke: var(--ar-ouro); stroke-width: 1.6; }
+.ar-eixo { fill: var(--ar-mao); }
+.ar-eixo-centro { fill: #1B2D25; }
+
+/* tela principal: cartão acima da lista de notas */
+.relogio-card { display: flex; align-items: center; gap: 16px; margin: 4px 0 14px; padding: 12px 16px;
+  background: var(--paper); border: 1px solid var(--rule); border-radius: var(--radius); box-shadow: var(--sombra); }
+.relogio-app { flex: none; width: 116px; }
+.relogio-texto { min-width: 0; }
+.relogio-hora { margin: 0; font-family: var(--serif); font-size: 2.1rem; font-weight: 700; line-height: 1; color: var(--sage-dark); font-variant-numeric: tabular-nums; }
+.relogio-seg { margin-left: 2px; font-size: 1rem; font-weight: 400; color: var(--ink-soft); }
+.relogio-data { margin: 8px 0 0; font-size: 0.92rem; line-height: 1.35; color: var(--ink-soft); }
+@media (max-width: 380px) { .relogio-card { gap: 12px; padding: 10px 12px; } .relogio-app { width: 96px; } .relogio-hora { font-size: 1.8rem; } }
+@media (prefers-reduced-motion: reduce) { .ar-anel { transition: none; } }
+@media print { .relogio-card { display: none !important; } }
