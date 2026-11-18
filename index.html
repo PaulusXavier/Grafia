@@ -270,6 +270,14 @@
     </label>
   </div>
 
+  <section class="relogio-card" aria-label="Hora e data de hoje">
+    <div id="app-relogio" class="relogio-app" role="group" aria-label="Relógio com dia, mês e dia da semana"></div>
+    <div class="relogio-texto">
+      <p class="relogio-hora"><span id="relogio-hora">--:--</span><span id="relogio-seg" class="relogio-seg">:--</span></p>
+      <p id="relogio-data" class="relogio-data"></p>
+    </div>
+  </section>
+
   <div id="filtros" class="filtros" role="group" aria-label="Filtrar notas" hidden>
     <button type="button" class="filtro" data-filtro="todas" aria-pressed="true">Todas</button>
     <button type="button" class="filtro" data-filtro="hoje" aria-pressed="false">Hoje</button>
@@ -382,6 +390,7 @@
 <script src="paulus-grafia.js"></script>
 <script src="mascote.js"></script>
 <script src="corretor.js"></script>
+<script src="relogio.js"></script>
 <script src="login.js"></script>
 <script src="produtividade.js"></script>
 <script type="module" src="app.js"></script>
